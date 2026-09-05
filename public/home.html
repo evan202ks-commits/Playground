@@ -302,16 +302,16 @@
   .lobby-sep{ display:flex; align-items:center; gap:10px; margin:14px 0;
     font-size:0.78rem; color: var(--text-dim); }
   .lobby-sep::before,.lobby-sep::after{ content:''; flex:1; height:1px; background: var(--line); }
-  .lobby-join-row{ display:flex; gap:8px; }
+  .lobby-join-row{ display:flex; gap:8px; width:100%; box-sizing:border-box; }
   .lobby-join-input{
-    flex:1; background: var(--panel-alt); border:1px solid var(--line);
+    flex:1; min-width:0; background: var(--panel-alt); border:1px solid var(--line);
     border-radius:9px; padding:10px 12px; color: var(--text);
     font-family: var(--font-display); font-size:1rem; letter-spacing:0.1em;
-    text-transform:uppercase; outline:none;
+    text-transform:uppercase; outline:none; box-sizing:border-box;
   }
   .lobby-join-input:focus{ border-color: var(--blue); }
   .lobby-join-btn{
-    background: var(--blue); color:#fff; border:none; border-radius:9px;
+    flex-shrink:0; background: var(--blue); color:#fff; border:none; border-radius:9px;
     padding:10px 16px; font-family: var(--font-display); font-size:0.85rem;
     cursor:pointer; white-space:nowrap;
   }
@@ -344,6 +344,49 @@
   .lobby-status-msg{ font-size:0.82rem; color: var(--text-dim); min-height:1.2em; margin-bottom:4px; }
   .lobby-vs-label{ font-family:var(--font-display); font-weight:700; color:var(--text-dim);
     font-size:1rem; align-self:center; margin-top:-10px; }
+
+  /* Aperçu slots dans la phase pick */
+  .lobby-slots-preview{ display:flex; align-items:center; justify-content:center;
+    gap:8px; margin-bottom:14px; flex-wrap:wrap; }
+  .lobby-slots-preview .lobby-slot{ font-size:0.75rem; }
+  .lobby-slots-preview .lobby-slot-avatar{ width:38px; height:38px; font-size:0.9rem; }
+
+  /* Grille équipes phase wait */
+  .lw-teams{ display:flex; gap:8px; margin-bottom:14px; }
+  .lw-team{ flex:1; background:var(--panel-alt); border-radius:12px; padding:10px 8px;
+    display:flex; flex-direction:column; gap:8px; }
+  .lw-team-title{ font-family:var(--font-display); font-size:0.72rem; font-weight:700;
+    text-transform:uppercase; letter-spacing:0.06em; text-align:center; margin-bottom:2px; }
+  .lw-team.blue .lw-team-title{ color:var(--blue); }
+  .lw-team.red  .lw-team-title{ color:var(--red,#e74c3c); }
+  .lw-team-vs{ display:flex; align-items:center; justify-content:center;
+    font-family:var(--font-display); font-weight:700; color:var(--text-dim); font-size:1rem;
+    align-self:center; }
+  .lw-slot{ display:flex; align-items:center; gap:8px; padding:5px 6px;
+    border-radius:8px; background:var(--panel); min-height:40px; }
+  .lw-slot-av{ width:32px; height:32px; border-radius:50%; border:2px dashed var(--line);
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--font-display); font-weight:700; font-size:0.85rem;
+    color:var(--text-dim); flex-shrink:0; transition: border-color .2s, color .2s; }
+  .lw-slot-av.me{ border-style:solid; border-color:var(--blue); color:var(--blue); }
+  .lw-slot-av.ally{ border-style:solid; border-color:var(--blue); color:var(--blue); opacity:.7; }
+  .lw-slot-av.opp{ border-style:solid; border-color:var(--red,#e74c3c); color:var(--red,#e74c3c); }
+  .lw-slot-info{ flex:1; min-width:0; }
+  .lw-slot-name{ font-size:0.8rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    color:var(--text-dim); }
+  .lw-slot-name.filled{ color:var(--text); }
+  .lw-slot-ready{ font-size:0.65rem; color:var(--green,#27ae60); }
+
+  /* Sélection équipe */
+  .lw-team-pick{ margin-bottom:12px; }
+  .lw-team-pick-label{ font-size:0.8rem; color:var(--text-dim); margin-bottom:8px; }
+  .lw-team-pick-btns{ display:flex; gap:8px; }
+  .lw-team-btn{ flex:1; padding:9px 0; border:none; border-radius:9px;
+    font-family:var(--font-display); font-size:0.85rem; cursor:pointer; transition:opacity .2s; }
+  .lw-team-btn.blue{ background:var(--blue); color:#fff; }
+  .lw-team-btn.red{ background:var(--red,#e74c3c); color:#fff; }
+  .lw-team-btn:hover{ opacity:0.82; }
+  .lw-team-btn:disabled{ opacity:0.4; cursor:not-allowed; }
 </style>
 </head>
 <body>
@@ -508,26 +551,19 @@
   <div class="mm-card">
     <div class="mm-mode" id="mm-mode-label">1V1 Classé</div>
 
-    <!-- Phase 1 : choisir créer ou rejoindre -->
+    <!-- Phase 1 : créer ou rejoindre -->
     <div id="mm-lobby-pick">
-      <div class="mm-status" style="margin-bottom:18px;">Joue contre un vrai adversaire&nbsp;!</div>
-      <div class="lobby-slots">
-        <div class="lobby-slot">
-          <div class="lobby-slot-avatar filled" id="lp-you-av">?</div>
-          <div class="lobby-slot-name filled" id="lp-you-name">Toi</div>
-        </div>
-        <div class="lobby-vs-label">VS</div>
-        <div class="lobby-slot">
-          <div class="lobby-slot-avatar" id="lp-opp-av">?</div>
-          <div class="lobby-slot-name" id="lp-opp-name">En attente…</div>
-        </div>
-      </div>
+      <div class="mm-status" style="margin-bottom:14px;">Joue contre de vrais adversaires&nbsp;!</div>
+
+      <!-- Aperçu des slots (mis à jour dynamiquement) -->
+      <div id="lp-slots-preview" class="lobby-slots-preview"></div>
+
       <div class="lobby-code-box">
         <div class="lobby-code-label">Ton code de room</div>
         <div class="lobby-code-value" id="lobby-code-display" title="Cliquer pour copier">——</div>
-        <div class="lobby-code-hint">Partage ce code à ton adversaire</div>
+        <div class="lobby-code-hint">Partage ce code à tes coéquipiers / adversaires</div>
       </div>
-      <div class="lobby-sep">ou rejoins une room</div>
+      <div class="lobby-sep">ou rejoins une room existante</div>
       <div class="lobby-join-row">
         <input class="lobby-join-input" id="lobby-join-input" maxlength="6" placeholder="CODE" autocomplete="off" />
         <button class="lobby-join-btn" onclick="joinLobby()">Rejoindre</button>
@@ -537,20 +573,22 @@
       <button class="mm-cancel" onclick="cancelMatchmaking()">Annuler</button>
     </div>
 
-    <!-- Phase 2 : en attente que l'adversaire soit prêt -->
+    <!-- Phase 2 : room complète → choisir équipe & se mettre prêt -->
     <div id="mm-lobby-wait" style="display:none;">
-      <div class="lobby-slots">
-        <div class="lobby-slot">
-          <div class="lobby-slot-avatar filled" id="lw-you-av">?</div>
-          <div class="lobby-slot-name filled" id="lw-you-name">Toi</div>
-        </div>
-        <div class="lobby-vs-label">VS</div>
-        <div class="lobby-slot">
-          <div class="lobby-slot-avatar opp filled" id="lw-opp-av">?</div>
-          <div class="lobby-slot-name filled" id="lw-opp-name">—</div>
+
+      <!-- Grille 2v2 ou 1v1 -->
+      <div id="lw-teams" class="lw-teams"></div>
+
+      <!-- Sélection d'équipe (2v2 seulement, masqué en 1v1) -->
+      <div id="lw-team-pick" class="lw-team-pick" style="display:none;">
+        <div class="lw-team-pick-label">Choisis ton équipe :</div>
+        <div class="lw-team-pick-btns">
+          <button class="lw-team-btn blue" onclick="pickTeam(0)">⚡ Équipe A</button>
+          <button class="lw-team-btn red"  onclick="pickTeam(1)">🔥 Équipe B</button>
         </div>
       </div>
-      <div class="lobby-status-msg" id="lobby-wait-msg">En attente de la confirmation adverse…</div>
+
+      <div class="lobby-status-msg" id="lobby-wait-msg"></div>
       <div class="lobby-ready-row">
         <button class="lobby-ready-btn" id="lobby-ready-btn" onclick="setReady()">✔ Je suis prêt !</button>
       </div>
@@ -575,47 +613,50 @@
       `Matchmaking classé — ${mode === '1v1' ? '1V1' : '2V2'}`;
   }
 
-  let mmCountdownInterval = null;
-
   /* =====================================================
-     LOBBY 2 JOUEURS RÉELS (beta)
-     Utilise localStorage pour synchroniser deux onglets /
-     deux fenêtres sur le même appareil, ou deux appareils
-     partageant le même navigateur (ex: deux téléphones sur
-     un compte Google Chrome synchronisé) ou simplement deux
-     joueurs sur la même machine.
-     Clé de stockage : pd_lobby_<CODE>
-     Structure : { host, guest, hostReady, guestReady, mode, ts }
+     LOBBY MULTI-JOUEURS (1v1 & 2v2) — beta localStorage
+     ─────────────────────────────────────────────────────
+     Structure de la room :
+     {
+       code, mode,
+       players: [
+         { name, team, ready }   // team: 0 (bleu) | 1 (rouge) | null
+       ],
+       ts
+     }
+     Capacité : 2 joueurs (1v1) ou 4 joueurs (2v2)
+     Chaque joueur est identifié par son index dans players[].
   ===================================================== */
 
-  const LOBBY_TTL = 5 * 60 * 1000; // 5 min
-  let lobbyCode = null;
-  let lobbyRole = null; // 'host' | 'guest'
-  let lobbyPollId = null;
-  let lobbyCountdown = 0;
-  let lobbyCountdownId = null;
-  let myName = '';
+  const LOBBY_TTL  = 5 * 60 * 1000; // 5 min
+  const POLL_MS    = 500;
+  const MAX_PLAYERS = { '1v1': 2, '2v2': 4 };
 
-  function lobbyKey(code){ return `pd_lobby_${code}`; }
+  let lobbyCode     = null;
+  let lobbyPollId   = null;
+  let lobbyCountdownId = null;
+  let myPlayerIndex = null;   // index dans room.players[]
+  let myName        = '';
+
+  /* ── Persistance ── */
+  const lsKey = code => `pd_lobby_${code}`;
 
   function lobbyRead(code){
     try {
-      const raw = localStorage.getItem(lobbyKey(code));
+      const raw = localStorage.getItem(lsKey(code));
       if (!raw) return null;
       const d = JSON.parse(raw);
-      if (Date.now() - d.ts > LOBBY_TTL){ localStorage.removeItem(lobbyKey(code)); return null; }
+      if (Date.now() - d.ts > LOBBY_TTL){ localStorage.removeItem(lsKey(code)); return null; }
       return d;
     } catch(e){ return null; }
   }
 
-  function lobbyWrite(data){
-    data.ts = Date.now();
-    localStorage.setItem(lobbyKey(data.code), JSON.stringify(data));
+  function lobbyWrite(room){
+    room.ts = Date.now();
+    localStorage.setItem(lsKey(room.code), JSON.stringify(room));
   }
 
-  function lobbyRemove(code){
-    localStorage.removeItem(lobbyKey(code));
-  }
+  function lobbyRemove(code){ localStorage.removeItem(lsKey(code)); }
 
   function makeCode(){
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -624,149 +665,276 @@
     return s;
   }
 
+  /* ── Ouvrir le lobby ── */
   function findMatch(){
     myName = document.getElementById('player-name').textContent || 'Joueur';
     lobbyCode = makeCode();
-    lobbyRole = 'host';
+    myPlayerIndex = 0;
 
-    // Crée la room dans localStorage
-    lobbyWrite({ code: lobbyCode, host: myName, guest: null,
-      hostReady: false, guestReady: false, mode: currentMode });
+    const room = {
+      code: lobbyCode,
+      mode: currentMode,
+      players: [{ name: myName, team: currentMode === '1v1' ? 0 : null, ready: false }]
+    };
+    lobbyWrite(room);
 
     document.getElementById('mm-mode-label').textContent =
       currentMode === '1v1' ? '1V1 Classé' : '2V2 Classé';
     document.getElementById('mm-overlay').classList.add('open');
 
-    showLobbyPick();
+    renderPickPhase(room);
     startLobbyPoll();
   }
 
-  function showLobbyPick(){
+  /* ── Phase PICK : afficher code + aperçu slots ── */
+  function renderPickPhase(room){
     document.getElementById('mm-lobby-pick').style.display = 'block';
     document.getElementById('mm-lobby-wait').style.display = 'none';
-
-    const name = myName || 'Toi';
-    document.getElementById('lp-you-av').textContent = name.charAt(0).toUpperCase();
-    document.getElementById('lp-you-name').textContent = name;
-    document.getElementById('lp-opp-av').textContent = '?';
-    document.getElementById('lp-opp-name').textContent = 'En attente…';
     document.getElementById('lobby-join-err').textContent = '';
 
     const codeEl = document.getElementById('lobby-code-display');
-    codeEl.textContent = lobbyCode;
+    codeEl.textContent = room.code;
     codeEl.onclick = () => {
-      navigator.clipboard.writeText(lobbyCode).catch(()=>{});
+      navigator.clipboard.writeText(room.code).catch(()=>{});
       codeEl.style.color = 'var(--green,#27ae60)';
       setTimeout(()=>{ codeEl.style.color=''; }, 1000);
       PDAudio.playSfx('click');
     };
+
+    // Aperçu des slots
+    const max = MAX_PLAYERS[room.mode];
+    const preview = document.getElementById('lp-slots-preview');
+    preview.innerHTML = '';
+    for(let i = 0; i < max; i++){
+      const p = room.players[i];
+      const filled = !!p;
+      const isMe   = filled && i === myPlayerIndex;
+      const av = document.createElement('div');
+      av.className = 'lobby-slot';
+      av.innerHTML = `
+        <div class="lobby-slot-avatar ${filled?(isMe?'filled':'filled opp'):''}">
+          ${filled ? p.name.charAt(0).toUpperCase() : '?'}
+        </div>
+        <div class="lobby-slot-name ${filled?'filled':''}">
+          ${filled ? (isMe ? 'Toi' : p.name) : (i===0?'Hôte':'Joueur '+(i+1))}
+        </div>`;
+      preview.appendChild(av);
+      if(room.mode === '1v1' && i === 0){
+        const vs = document.createElement('div');
+        vs.className = 'lobby-vs-label';
+        vs.textContent = 'VS';
+        preview.appendChild(vs);
+      }
+    }
   }
 
-  function showLobbyWait(opponentName, iAmReady){
+  /* ── Phase WAIT : grille équipes + ready check ── */
+  function renderWaitPhase(room){
     document.getElementById('mm-lobby-pick').style.display = 'none';
     document.getElementById('mm-lobby-wait').style.display = 'block';
     document.getElementById('mm-countdown').style.display = 'none';
 
-    const name = myName || 'Toi';
-    document.getElementById('lw-you-av').textContent = name.charAt(0).toUpperCase();
-    document.getElementById('lw-you-name').textContent = name;
-    document.getElementById('lw-opp-av').textContent = opponentName.charAt(0).toUpperCase();
-    document.getElementById('lw-opp-name').textContent = opponentName;
+    const me = room.players[myPlayerIndex];
+    const is2v2 = room.mode === '2v2';
 
-    const btn = document.getElementById('lobby-ready-btn');
-    btn.disabled = iAmReady;
-    btn.textContent = iAmReady ? '✔ Prêt !' : '✔ Je suis prêt !';
-    document.getElementById('lobby-wait-msg').textContent =
-      iAmReady ? 'En attente de la confirmation adverse…' : 'Confirme que tu es prêt pour lancer la partie.';
+    /* ---- Grille des équipes ---- */
+    const teamsEl = document.getElementById('lw-teams');
+    if(is2v2){
+      // 2 équipes de 2
+      const teamA = [0,1]; // slots équipe A (bleu)
+      const teamB = [2,3]; // slots équipe B (rouge)
+      teamsEl.innerHTML = `
+        <div class="lw-team blue">
+          <div class="lw-team-title">⚡ Équipe A</div>
+          ${teamA.map(i => slotHTML(room, i)).join('')}
+        </div>
+        <div class="lw-team-vs">VS</div>
+        <div class="lw-team red">
+          <div class="lw-team-title">🔥 Équipe B</div>
+          ${teamB.map(i => slotHTML(room, i)).join('')}
+        </div>`;
+    } else {
+      // 1v1 : deux colonnes simples
+      teamsEl.innerHTML = `
+        <div class="lw-team blue">
+          <div class="lw-team-title">Toi</div>
+          ${slotHTML(room, 0)}
+        </div>
+        <div class="lw-team-vs">VS</div>
+        <div class="lw-team red">
+          <div class="lw-team-title">Adversaire</div>
+          ${slotHTML(room, 1)}
+        </div>`;
+    }
+
+    /* ---- Sélection d'équipe (2v2, si pas encore choisi) ---- */
+    const pickEl = document.getElementById('lw-team-pick');
+    if(is2v2 && me && me.team === null){
+      pickEl.style.display = 'block';
+      // Désactiver les boutons des équipes pleines
+      const countA = room.players.filter(p=>p&&p.team===0).length;
+      const countB = room.players.filter(p=>p&&p.team===1).length;
+      pickEl.querySelectorAll('.lw-team-btn')[0].disabled = countA >= 2;
+      pickEl.querySelectorAll('.lw-team-btn')[1].disabled = countB >= 2;
+    } else {
+      pickEl.style.display = 'none';
+    }
+
+    /* ---- Bouton prêt ---- */
+    const readyBtn = document.getElementById('lobby-ready-btn');
+    const canReady = !is2v2 || (me && me.team !== null); // en 2v2, faut choisir d'abord
+    readyBtn.style.display = '';
+    readyBtn.disabled = !canReady || (me && me.ready);
+    readyBtn.textContent = (me && me.ready) ? '✔ Prêt !' : '✔ Je suis prêt !';
+
+    /* ---- Message de statut ---- */
+    const readyCount = room.players.filter(p=>p&&p.ready).length;
+    const total = MAX_PLAYERS[room.mode];
+    const joined = room.players.filter(p=>p).length;
+    let msg = '';
+    if(is2v2 && me && me.team === null) msg = 'Choisis ton équipe avant de te mettre prêt.';
+    else if(me && me.ready) msg = `${readyCount}/${total} joueurs prêts…`;
+    else msg = 'Confirme que tu es prêt pour lancer la partie.';
+    document.getElementById('lobby-wait-msg').textContent = msg;
   }
 
+  function slotHTML(room, i){
+    const p = room.players[i];
+    const filled = !!p;
+    const isMe   = filled && i === myPlayerIndex;
+    const cls    = isMe ? 'me' : (filled ? (p.team === myPlayerIndex < 2 ? 'ally' : 'opp') : '');
+    // couleur : me = bleu, coéquipier = bleu estompé, adversaire = rouge
+    let avCls = '';
+    if(filled){
+      if(isMe) avCls = 'me';
+      else {
+        const myTeam = room.players[myPlayerIndex]?.team;
+        avCls = (myTeam !== null && p.team === myTeam) ? 'ally' : 'opp';
+      }
+    }
+    return `<div class="lw-slot">
+      <div class="lw-slot-av ${avCls}">${filled ? p.name.charAt(0).toUpperCase() : '?'}</div>
+      <div class="lw-slot-info">
+        <div class="lw-slot-name ${filled?'filled':''}">${filled?(isMe?'Toi':p.name):'En attente…'}</div>
+        ${filled&&p.ready ? '<div class="lw-slot-ready">✔ Prêt</div>' : ''}
+      </div>
+    </div>`;
+  }
+
+  /* ── Rejoindre depuis un code ── */
   function joinLobby(){
     const code = document.getElementById('lobby-join-input').value.trim().toUpperCase();
     const errEl = document.getElementById('lobby-join-err');
     if(code.length < 4){ errEl.textContent = 'Code trop court.'; return; }
 
-    const data = lobbyRead(code);
-    if(!data){ errEl.textContent = 'Room introuvable ou expirée.'; return; }
-    if(data.guest){ errEl.textContent = 'Cette room est déjà complète.'; return; }
-    if(data.host === myName){ errEl.textContent = 'Tu ne peux pas rejoindre ta propre room !'; return; }
+    myName = document.getElementById('player-name').textContent || 'Joueur';
+    const room = lobbyRead(code);
+    if(!room){ errEl.textContent = 'Room introuvable ou expirée.'; return; }
 
-    // Rejoindre la room
+    const max = MAX_PLAYERS[room.mode];
+    if(room.players.filter(p=>p).length >= max){
+      errEl.textContent = 'Cette room est déjà complète.'; return;
+    }
+    if(room.players.find(p=>p&&p.name===myName)){
+      errEl.textContent = 'Ce nom est déjà pris dans cette room !'; return;
+    }
+
+    // Trouver le premier slot libre
+    let slotIdx = -1;
+    for(let i=0;i<max;i++){ if(!room.players[i]){ slotIdx=i; break; } }
+    if(slotIdx < 0){ errEl.textContent = 'Room pleine.'; return; }
+
+    const team = room.mode === '1v1' ? 1 : null; // 1v1: auto équipe B; 2v2: à choisir
+    room.players[slotIdx] = { name: myName, team, ready: false };
+    lobbyWrite(room);
+
     lobbyCode = code;
-    lobbyRole = 'guest';
-    data.guest = myName;
-    lobbyWrite(data);
+    myPlayerIndex = slotIdx;
+    currentMode = room.mode;
+    document.getElementById('mm-mode-label').textContent =
+      room.mode === '1v1' ? '1V1 Classé' : '2V2 Classé';
+    document.getElementById('mm-overlay').classList.add('open');
+
     PDAudio.playSfx('notification');
-    showLobbyWait(data.host, false);
+    renderWaitPhase(room);
     startLobbyPoll();
   }
 
-  function setReady(){
-    const data = lobbyRead(lobbyCode);
-    if(!data){ cancelMatchmaking(); return; }
-    if(lobbyRole === 'host') data.hostReady = true;
-    else data.guestReady = true;
-    lobbyWrite(data);
+  /* ── Choisir son équipe (2v2) ── */
+  function pickTeam(team){
+    const room = lobbyRead(lobbyCode);
+    if(!room) return;
+    const count = room.players.filter(p=>p&&p.team===team).length;
+    if(count >= 2){ return; } // équipe pleine
+    room.players[myPlayerIndex].team = team;
+    lobbyWrite(room);
     PDAudio.playSfx('click');
-
-    const oppName = lobbyRole === 'host' ? data.guest : data.host;
-    showLobbyWait(oppName || '—', true);
+    renderWaitPhase(room);
   }
 
+  /* ── Se mettre prêt ── */
+  function setReady(){
+    const room = lobbyRead(lobbyCode);
+    if(!room){ cancelMatchmaking(); return; }
+    room.players[myPlayerIndex].ready = true;
+    lobbyWrite(room);
+    PDAudio.playSfx('click');
+    renderWaitPhase(room);
+  }
+
+  /* ── Polling ── */
   function startLobbyPoll(){
     clearInterval(lobbyPollId);
-    lobbyPollId = setInterval(lobbyPollTick, 600);
+    lobbyPollId = setInterval(lobbyPollTick, POLL_MS);
   }
+
+  let _prevJoined = 0;
+  let _launchTriggered = false;
 
   function lobbyPollTick(){
-    const data = lobbyRead(lobbyCode);
-    if(!data){ cancelMatchmaking(); return; }
+    const room = lobbyRead(lobbyCode);
+    if(!room){ cancelMatchmaking(); return; }
 
-    // Adversaire a rejoint → passer en phase wait
-    const waiting = document.getElementById('mm-lobby-wait').style.display !== 'none';
-    const oppName = lobbyRole === 'host' ? data.guest : data.host;
+    const joined = room.players.filter(p=>p).length;
+    const max    = MAX_PLAYERS[room.mode];
+    const inWait = document.getElementById('mm-lobby-wait').style.display !== 'none';
 
-    if(!waiting && oppName){
-      PDAudio.playSfx('notification');
-      const iAmReady = lobbyRole === 'host' ? data.hostReady : data.guestReady;
-      showLobbyWait(oppName, iAmReady);
+    // Son entré quand un nouveau joueur arrive
+    if(joined > _prevJoined){ PDAudio.playSfx('notification'); }
+    _prevJoined = joined;
+
+    // Passer en phase wait quand la room est complète
+    if(!inWait && joined >= max){
+      renderWaitPhase(room);
+    } else if(inWait){
+      renderWaitPhase(room);
+    } else {
+      // toujours en pick : rafraîchir aperçu
+      renderPickPhase(room);
     }
 
-    // Mettre à jour le nom de l'adversaire dans pick si pas encore en wait
-    if(!waiting){
-      if(oppName){
-        document.getElementById('lp-opp-av').textContent = oppName.charAt(0).toUpperCase();
-        document.getElementById('lp-opp-name').textContent = oppName;
-      }
-    }
+    // Lancer si tous prêts (et équipes valides en 2v2)
+    const allReady = room.players.filter(p=>p).length === max &&
+                     room.players.every(p=>!p||p.ready);
+    const teamsOk  = room.mode === '1v1' ||
+                     (room.players.filter(p=>p&&p.team===0).length === 2 &&
+                      room.players.filter(p=>p&&p.team===1).length === 2);
 
-    // Les deux sont prêts → lancer le countdown
-    if(data.hostReady && data.guestReady){
+    if(allReady && teamsOk && !_launchTriggered){
+      _launchTriggered = true;
       clearInterval(lobbyPollId);
-      startLaunchCountdown(oppName);
-      return;
-    }
-
-    // Mettre à jour le bouton si l'adversaire a confirmé
-    if(waiting){
-      const btn = document.getElementById('lobby-ready-btn');
-      const iAmReady = lobbyRole === 'host' ? data.hostReady : data.guestReady;
-      const oppReady = lobbyRole === 'host' ? data.guestReady : data.hostReady;
-      if(iAmReady){
-        btn.disabled = true;
-        btn.textContent = '✔ Prêt !';
-        document.getElementById('lobby-wait-msg').textContent = oppReady
-          ? 'Les deux joueurs sont prêts !'
-          : 'En attente de la confirmation adverse…';
-      }
+      startLaunchCountdown(room);
     }
   }
 
-  function startLaunchCountdown(opponentName){
+  /* ── Countdown de lancement ── */
+  function startLaunchCountdown(room){
     PDAudio.playSfx('notification');
     const countdownEl = document.getElementById('mm-countdown');
     countdownEl.style.display = 'block';
-    document.getElementById('lobby-wait-msg').textContent = 'Les deux joueurs sont prêts !';
+    document.getElementById('lobby-wait-msg').textContent = 'Tout le monde est prêt !';
     document.getElementById('lobby-ready-btn').style.display = 'none';
+    document.getElementById('lw-team-pick').style.display = 'none';
 
     let count = 3;
     countdownEl.textContent = count;
@@ -775,7 +943,7 @@
       if(count <= 0){
         clearInterval(lobbyCountdownId);
         lobbyRemove(lobbyCode);
-        launchGame(opponentName);
+        launchGame(room);
         return;
       }
       countdownEl.textContent = count;
@@ -783,25 +951,43 @@
     }, 800);
   }
 
+  /* ── Lancer le jeu ── */
+  function launchGame(room){
+    // Construire la liste des adversaires (équipe opposée en 2v2)
+    const me = room.players[myPlayerIndex];
+    let opponents = [];
+    if(room.mode === '1v1'){
+      opponents = room.players.filter((_,i)=>i!==myPlayerIndex).map(p=>p.name);
+    } else {
+      opponents = room.players.filter(p=>p&&p.team!==me.team).map(p=>p.name);
+    }
+    const oppParam = opponents.join(',');
+    window.location.href = `game.html?mode=${room.mode}&opponent=${encodeURIComponent(oppParam)}`;
+  }
+
+  /* ── Annuler / quitter ── */
   function cancelMatchmaking(){
     clearInterval(lobbyPollId);
     clearInterval(lobbyCountdownId);
-    if(lobbyCode) lobbyRemove(lobbyCode);
-    lobbyCode = null;
-    lobbyRole = null;
+    if(lobbyCode){
+      // Retirer le joueur de la room (ou supprimer si hôte)
+      const room = lobbyRead(lobbyCode);
+      if(room){
+        if(myPlayerIndex === 0) lobbyRemove(lobbyCode);
+        else { room.players[myPlayerIndex] = null; lobbyWrite(room); }
+      }
+    }
+    lobbyCode = null; myPlayerIndex = null;
+    _prevJoined = 0; _launchTriggered = false;
     PDAudio.playSfx('click');
     document.getElementById('mm-overlay').classList.remove('open');
-    // Réinitialiser
     document.getElementById('mm-lobby-pick').style.display = 'block';
     document.getElementById('mm-lobby-wait').style.display = 'none';
     document.getElementById('lobby-ready-btn').style.display = '';
     document.getElementById('mm-countdown').style.display = 'none';
     document.getElementById('lobby-join-input').value = '';
     document.getElementById('lobby-join-err').textContent = '';
-  }
-
-  function launchGame(opponentName){
-    window.location.href = `game.html?mode=${currentMode}&opponent=${encodeURIComponent(opponentName)}`;
+    document.getElementById('lw-team-pick').style.display = 'none';
   }
 
   function logout(){
