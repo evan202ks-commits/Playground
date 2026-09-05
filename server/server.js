@@ -1,4 +1,5 @@
 require('dotenv').config();
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
@@ -14,6 +15,9 @@ app.use(cors({ origin: process.env.CLIENT_URL, credentials: true }));
 app.use(express.json());
 app.use(passport.initialize());
 
+// --- Sert les fichiers statiques du frontend (home.html, login.html, css/js inline, etc.) ---
+app.use(express.static(path.join(__dirname, '../public')));
+
 // --- Routes d'authentification (email/mdp + OAuth Google/Discord) ---
 app.use('/api/auth', authRoutes);
 
@@ -24,8 +28,13 @@ app.get('/api/me', requireAuth, async (req, res) => {
   res.json(user);
 });
 
+// --- Pages du frontend : la racine affiche directement le site ---
 app.get('/', (req, res) => {
-  res.send('Playground Defense API — en ligne.');
+  res.sendFile(path.join(__dirname, '../public/home.html'));
+});
+
+app.get('/login', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/login.html'));
 });
 
 // Render fournit le port via process.env.PORT : ne jamais le fixer en dur
