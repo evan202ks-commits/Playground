@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Playground Defense — Bêta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #1B1E24;
+    --panel: #242A33;
+    --panel-alt: #2E3540;
+    --line: #3A4250;
+    --text: #F5F1E8;
+    --text-dim: #9AA3B1;
+    --yellow: #F2B705;
+    --red: #E4572E;
+    --blue: #3AAED8;
+    --font-display: 'Space Grotesk', sans-serif;
+    --font-body: 'Inter', sans-serif;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; height:100%; }
+  body{
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    min-height:100vh;
+  }
+  .shell{ max-width: 980px; margin: 0 auto; padding: 18px 18px 32px; }
+
+  header{
+    display:flex; align-items:center; justify-content:space-between;
+    padding-bottom: 16px; margin-bottom: 16px; border-bottom: 1px solid var(--line);
+  }
+  .mode-label{ font-family: var(--font-display); font-weight:700; font-size:1.05rem; }
+  .mode-label .beta-badge{
+    font-family: var(--font-display); font-size:0.62rem; font-weight:700;
+    background: rgba(228,87,46,0.18); color: var(--red);
+    border:1px solid rgba(228,87,46,0.4);
+    padding: 2px 7px; border-radius:6px; letter-spacing:0.05em;
+    margin-left: 8px; vertical-align: middle;
+  }
+  .opponent-note{ font-size:0.78rem; color: var(--text-dim); margin-top:2px; }
+  .header-actions{ display:flex; gap:10px; align-items:center; }
+  .icon-btn{
+    width:38px; height:38px; border-radius:9px;
+    background: var(--panel-alt); border:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; color: var(--text-dim);
+  }
+  .icon-btn:hover{ color: var(--text); border-color: var(--blue); }
+
+  .hud{
+    display:flex; gap:12px; flex-wrap:wrap; margin-bottom:14px;
+  }
+  .hud-stat{
+    background: var(--panel); border:1px solid var(--line); border-radius:12px;
+    padding: 10px 16px; flex:1; min-width:110px;
+  }
+  .hud-stat .label{ font-size:0.72rem; color: var(--text-dim); margin-bottom:3px; }
+  .hud-stat .value{ font-family: var(--font-display); font-size:1.25rem; }
+  .hud-stat.money .value{ color: var(--yellow); }
+  .hud-stat.lives .value{ color: var(--red); }
+  .hud-stat.wave .value{ color: var(--blue); }
+
+  .stage-wrap{
+    background: var(--panel); border:1px solid var(--line); border-radius:16px;
+    padding: 10px; position:relative;
+  }
+  .stage{
+    width:100%; aspect-ratio: 900 / 520;
+    display:block; border-radius:10px; background: #171A20;
+    cursor: pointer;
+  }
+
+  .towers-bar{
+    display:flex; gap:10px; margin-top:14px; flex-wrap:wrap; align-items:stretch;
+  }
+  .tower-btn{
+    flex:1; min-width:150px;
+    background: var(--panel); border:1px solid var(--line); border-radius:12px;
+    padding: 12px 14px; cursor:pointer; text-align:left;
+    color: var(--text); font-family: var(--font-body);
+    display:flex; flex-direction:column; gap:4px;
+  }
+  .tower-btn:hover{ border-color: var(--blue); }
+  .tower-btn.selected{ border-color: var(--yellow); background: var(--panel-alt); }
+  .tower-btn .t-name{ font-family: var(--font-display); font-weight:700; font-size:0.92rem; display:flex; align-items:center; gap:8px; }
+  .tower-btn .t-dot{ width:14px; height:14px; border-radius:50%; flex-shrink:0; }
+  .tower-btn .t-desc{ font-size:0.74rem; color: var(--text-dim); }
+  .tower-btn .t-cost{ font-family: var(--font-display); font-size:0.82rem; color: var(--yellow); }
+
+  .hint-row{
+    margin-top:10px; font-size:0.78rem; color: var(--text-dim); text-align:center;
+  }
+
+  .wave-banner{
+    position:absolute; left:50%; top:16px; transform: translateX(-50%);
+    background: rgba(36,42,51,0.95); border:1px solid var(--line);
+    border-radius:12px; padding:10px 20px; text-align:center;
+    display:none; z-index:5;
+  }
+  .wave-banner.show{ display:block; }
+  .wave-banner .wb-title{ font-family: var(--font-display); font-weight:700; font-size:0.95rem; }
+  .wave-banner .wb-sub{ font-size:0.76rem; color: var(--text-dim); margin-top:2px; }
+  .wave-banner button{
+    margin-top:8px; background: var(--yellow); color:#1B1E24; border:none;
+    border-radius:7px; padding:7px 16px; font-family: var(--font-display);
+    font-weight:700; font-size:0.8rem; cursor:pointer;
+  }
+
+  .end-overlay{
+    position:fixed; inset:0; background: rgba(10,12,16,0.82);
+    display:none; align-items:center; justify-content:center; z-index:50; padding:20px;
+  }
+  .end-overlay.open{ display:flex; }
+  .end-card{
+    background: var(--panel); border:1px solid var(--line); border-radius:18px;
+    padding:32px 28px; width:100%; max-width:380px; text-align:center;
+  }
+  .end-card h2{ font-family: var(--font-display); margin:0 0 6px; font-size:1.4rem; }
+  .end-card h2.win{ color: var(--blue); }
+  .end-card h2.lose{ color: var(--red); }
+  .end-card p{ color: var(--text-dim); font-size:0.88rem; margin: 0 0 20px; }
+  .end-stats{ display:flex; justify-content:center; gap:22px; margin-bottom:22px; }
+  .end-stats div{ font-size:0.8rem; color: var(--text-dim); }
+  .end-stats strong{ display:block; font-family: var(--font-display); font-size:1.15rem; color: var(--text); }
+  .end-actions{ display:flex; gap:10px; justify-content:center; }
+  .btn{
+    border:none; border-radius:9px; padding:11px 20px; font-family: var(--font-display);
+    font-weight:700; font-size:0.88rem; cursor:pointer;
+  }
+  .btn-primary{ background: var(--yellow); color:#1B1E24; }
+  .btn-ghost{ background: var(--panel-alt); color: var(--text); border:1px solid var(--line); }
+
+  /* --- Modale Paramètres (identique au reste du site) --- */
+  .settings-overlay{
+    position:fixed; inset:0; background: rgba(10,12,16,0.6);
+    display:none; align-items:center; justify-content:center; z-index:100; padding:20px;
+  }
+  .settings-overlay.open{ display:flex; }
+  .settings-modal{
+    background: var(--panel); border:1px solid var(--line); border-radius:16px;
+    width:100%; max-width:440px; max-height:88vh; overflow-y:auto;
+  }
+  .settings-header{ display:flex; align-items:center; justify-content:space-between; padding:18px 20px; border-bottom:1px solid var(--line); }
+  .settings-header h3{ margin:0; font-family: var(--font-display); font-size:1.05rem; }
+  .settings-body{ padding:18px 20px; display:flex; flex-direction:column; gap:16px; }
+  .settings-row{ display:flex; flex-direction:column; gap:8px; }
+  .settings-row.toggle-row{ flex-direction:row; align-items:center; justify-content:space-between; gap:12px; }
+  .settings-label{ font-size:0.9rem; font-weight:600; }
+  .settings-sub{ font-size:0.76rem; color: var(--text-dim); margin-top:2px; }
+  .settings-divider{ height:1px; background: var(--line); margin:2px 0; }
+  .settings-row input[type=range]{ width:100%; accent-color: var(--blue); height:4px; }
+  .settings-vol-row{ display:flex; align-items:center; gap:10px; }
+  .settings-vol-row input[type=range]{ flex:1; }
+  .settings-test-btn{
+    flex-shrink:0; background: var(--panel-alt); color: var(--text-dim);
+    border:1px solid var(--line); border-radius:7px; padding:7px 12px; font-size:0.76rem; cursor:pointer;
+  }
+  .settings-test-btn:hover{ color: var(--text); border-color: var(--blue); }
+  .settings-footer{ display:flex; justify-content:space-between; align-items:center; padding:16px 20px; border-top:1px solid var(--line); }
+  .settings-reset{ background:transparent; border:none; color: var(--text-dim); font-size:0.82rem; cursor:pointer; }
+  .settings-reset:hover{ color: var(--red); }
+  .settings-close{ padding:10px 22px; font-size:0.9rem; }
+  .switch{ position:relative; display:inline-block; width:42px; height:24px; flex-shrink:0; }
+  .switch input{ opacity:0; width:0; height:0; position:absolute; }
+  .slider-toggle{ position:absolute; cursor:pointer; inset:0; background: var(--panel-alt); border:1px solid var(--line); border-radius:999px; transition:.15s; }
+  .slider-toggle::before{ content:""; position:absolute; height:16px; width:16px; left:2px; top:2px; background: var(--text-dim); border-radius:50%; transition:.15s; }
+  .switch input:checked + .slider-toggle{ background: rgba(58,174,216,0.25); border-color: var(--blue); }
+  .switch input:checked + .slider-toggle::before{ background: var(--blue); transform: translateX(18px); }
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <header>
+    <div>
+      <div class="mode-label" id="mode-label">1V1 Classé<span class="beta-badge">BÊTA — ronds uniquement</span></div>
+      <div class="opponent-note" id="opponent-note">Bêta solo — le vrai duel en ligne arrivera avec le serveur de matchmaking.</div>
+    </div>
+    <div class="header-actions">
+      <div class="icon-btn" title="Paramètres" onclick="PDAudio.playSfx('click'); openSettings();">⚙</div>
+      <div class="icon-btn" title="Quitter la partie" onclick="quitGame();">✕</div>
+    </div>
+  </header>
+
+  <div class="hud">
+    <div class="hud-stat money"><div class="label">Argent</div><div class="value" id="hud-money">0</div></div>
+    <div class="hud-stat lives"><div class="label">Vies</div><div class="value" id="hud-lives">0</div></div>
+    <div class="hud-stat wave"><div class="label">Vague</div><div class="value" id="hud-wave">1 / 10</div></div>
+  </div>
+
+  <div class="stage-wrap">
+    <div class="wave-banner" id="wave-banner">
+      <div class="wb-title" id="wb-title">Vague terminée !</div>
+      <div class="wb-sub" id="wb-sub">Prochaine vague dans 5s</div>
+      <button onclick="PDAudio.playSfx('click'); startNextWaveNow();">Lancer maintenant</button>
+    </div>
+    <canvas id="stage" class="stage" width="900" height="520"></canvas>
+  </div>
+
+  <div class="towers-bar" id="towers-bar"><!-- rempli par JS --></div>
+  <div class="hint-row">Clique sur un point de construction (pointillés) pour poser la tour sélectionnée · Clique sur une tour posée pour la vendre (60% remboursés)</div>
+</div>
+
+<!-- Fin de partie -->
+<div class="end-overlay" id="end-overlay">
+  <div class="end-card">
+    <h2 id="end-title">Victoire !</h2>
+    <p id="end-sub">Tu as tenu toutes les vagues.</p>
+    <div class="end-stats">
+      <div>Vague atteinte<strong id="end-wave">—</strong></div>
+      <div>Argent final<strong id="end-money">—</strong></div>
+    </div>
+    <div class="end-actions">
+      <button class="btn btn-ghost" onclick="PDAudio.playSfx('click'); window.location.href='home.html';">Retour à l'accueil</button>
+      <button class="btn btn-primary" onclick="PDAudio.playSfx('click'); window.location.reload();">Réessayer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Musique de fond -->
+<audio id="bg-music" src="audio/menu-music.mp3" loop preload="auto"></audio>
+
+<!-- Modale Paramètres -->
+<div class="settings-overlay" id="settings-overlay" onclick="if(event.target===this){ PDAudio.playSfx('click'); closeSettings(); }">
+  <div class="settings-modal">
+    <div class="settings-header">
+      <h3>Paramètres</h3>
+      <div class="icon-btn" onclick="PDAudio.playSfx('click'); closeSettings();">✕</div>
+    </div>
+    <div class="settings-body">
+      <div class="settings-row toggle-row">
+        <div>
+          <div class="settings-label">Couper tous les sons</div>
+          <div class="settings-sub">Désactive la musique et les effets sonores</div>
+        </div>
+        <label class="switch"><input type="checkbox" id="opt-mute-all" onchange="onSettingChange()"><span class="slider-toggle"></span></label>
+      </div>
+      <div class="settings-row">
+        <div class="settings-label">Volume général</div>
+        <input type="range" min="0" max="100" id="opt-master" oninput="onSettingChange()">
+      </div>
+      <div class="settings-divider"></div>
+      <div class="settings-row toggle-row">
+        <div><div class="settings-label">Musique</div><div class="settings-sub">Musique d'ambiance</div></div>
+        <label class="switch"><input type="checkbox" id="opt-music-enabled" onchange="onSettingChange()"><span class="slider-toggle"></span></label>
+      </div>
+      <div class="settings-row">
+        <div class="settings-label">Volume musique</div>
+        <input type="range" min="0" max="100" id="opt-music-vol" oninput="onSettingChange()">
+      </div>
+      <div class="settings-divider"></div>
+      <div class="settings-row toggle-row">
+        <div><div class="settings-label">Effets sonores</div><div class="settings-sub">Tirs, clics, notifications</div></div>
+        <label class="switch"><input type="checkbox" id="opt-sfx-enabled" onchange="onSettingChange()"><span class="slider-toggle"></span></label>
+      </div>
+      <div class="settings-row">
+        <div class="settings-label">Volume des effets sonores</div>
+        <div class="settings-vol-row">
+          <input type="range" min="0" max="100" id="opt-sfx-vol" oninput="onSettingChange()">
+          <button class="settings-test-btn" onclick="PDAudio.playSfx('notification')">Tester</button>
+        </div>
+      </div>
+    </div>
+    <div class="settings-footer">
+      <button class="settings-reset" onclick="resetSettings()">Réinitialiser</button>
+      <button class="btn-primary btn settings-close" onclick="PDAudio.playSfx('click'); closeSettings();">Terminé</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/audio-settings.js"></script>
+<script>
+  /* ============================================================
+     PLAYGROUND DEFENSE — BÊTA
+     Prototype jouable sans graphismes : tout est représenté par
+     des ronds (tours, ennemis, projectiles, base). Le mode "duel
+     en ligne" réel n'est pas encore branché (pas de serveur de
+     matchmaking temps réel) : cette bêta est un mode solo contre
+     des vagues, pour valider la boucle de jeu.
+     ============================================================ */
+
+  const params = new URLSearchParams(window.location.search);
+  const mode = params.get('mode') === '2v2' ? '2v2' : '1v1';
+  const opponent = params.get('opponent') || '';
+  document.getElementById('mode-label').innerHTML =
+    (mode === '1v1' ? '1V1 Classé' : '2V2 Classé') + '<span class="beta-badge">BÊTA — ronds uniquement</span>';
+  if (opponent) {
+    document.getElementById('opponent-note').textContent =
+      `Adversaire : ${opponent} — bêta solo (le vrai duel en ligne arrivera avec le serveur de matchmaking).`;
+  }
+
+  const canvas = document.getElementById('stage');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+
+  // --- Tracé du chemin emprunté par les ennemis ---
+  const PATH = [
+    { x: -30, y: 260 },
+    { x: 170, y: 260 },
+    { x: 170, y: 90 },
+    { x: 430, y: 90 },
+    { x: 430, y: 440 },
+    { x: 670, y: 440 },
+    { x: 670, y: 180 },
+    { x: 900, y: 180 },
+  ];
+  const BASE = PATH[PATH.length - 1];
+
+  function segLength(a, b){ return Math.hypot(b.x - a.x, b.y - a.y); }
+  const SEGMENTS = PATH.slice(1).map((p, i) => ({ a: PATH[i], b: p, len: segLength(PATH[i], p) }));
+  const TOTAL_LEN = SEGMENTS.reduce((s, seg) => s + seg.len, 0);
+
+  function pointAtDistance(d){
+    let remaining = Math.max(0, Math.min(d, TOTAL_LEN));
+    for (const seg of SEGMENTS){
+      if (remaining <= seg.len){
+        const t = seg.len === 0 ? 0 : remaining / seg.len;
+        return { x: seg.a.x + (seg.b.x - seg.a.x) * t, y: seg.a.y + (seg.b.y - seg.a.y) * t };
+      }
+      remaining -= seg.len;
+    }
+    return { ...BASE };
+  }
+
+  // --- Emplacements de construction ---
+  const SPOTS = [
+    { x: 170, y: 180 }, { x: 300, y: 90 }, { x: 430, y: 260 },
+    { x: 550, y: 440 }, { x: 670, y: 300 }, { x: 800, y: 180 },
+  ].map(s => ({ ...s, tower: null }));
+
+  // --- Types de tours ---
+  const TOWER_TYPES = {
+    basic: { name: 'Basique', cost: 50, damage: 11, range: 95, fireRate: 1.4, color: '#F2B705', desc: 'Équilibrée, bon marché' },
+    fast:  { name: 'Rapide',  cost: 80, damage: 6,  range: 78, fireRate: 3.6, color: '#3AAED8', desc: 'Cadence élevée' },
+    heavy: { name: 'Lourde',  cost: 140, damage: 34, range: 115, fireRate: 0.65, color: '#E4572E', desc: 'Gros dégâts, lente' },
+  };
+  let selectedType = 'basic';
+
+  // --- Types d'ennemis ---
+  const ENEMY_TYPES = {
+    basic: { hp: 30, speed: 62, radius: 12, color: '#E4572E', reward: 8 },
+    fast:  { hp: 16, speed: 108, radius: 8, color: '#3AAED8', reward: 6 },
+    tank:  { hp: 150, speed: 38, radius: 19, color: '#8B2E1F', reward: 26 },
+  };
+
+  const TOTAL_WAVES = 10;
+
+  // --- État du jeu ---
+  let money = 180;
+  let lives = 12;
+  let wave = 1;
+  let enemies = [];
+  let towers = [];
+  let projectiles = [];
+  let spawnQueue = [];
+  let spawnTimer = 0;
+  let waveActive = false;
+  let waitingNextWave = false;
+  let nextWaveTimer = 0;
+  let gameOver = false;
+  let lastTs = null;
+
+  function buildWaveQueue(w){
+    const count = 6 + w * 2;
+    const queue = [];
+    for (let i = 0; i < count; i++){
+      let type = 'basic';
+      if (w % 5 === 0 && i === count - 1) type = 'tank';
+      else if (i % 3 === 1) type = 'fast';
+      queue.push(type);
+    }
+    return queue;
+  }
+
+  function makeEnemy(type, w){
+    const base = ENEMY_TYPES[type];
+    const scale = 1 + (w - 1) * 0.18;
+    return {
+      type,
+      hp: Math.round(base.hp * scale),
+      maxHp: Math.round(base.hp * scale),
+      speed: base.speed + w * 1.4,
+      radius: base.radius,
+      color: base.color,
+      reward: Math.round(base.reward + w * 0.6),
+      dist: 0,
+      dead: false,
+    };
+  }
+
+  function startWave(w){
+    waveActive = true;
+    waitingNextWave = false;
+    document.getElementById('wave-banner').classList.remove('show');
+    spawnQueue = buildWaveQueue(w);
+    spawnTimer = 0;
+  }
+
+  function startNextWaveNow(){
+    if (!waitingNextWave) return;
+    wave++;
+    if (wave > TOTAL_WAVES){ endGame(true); return; }
+    updateHud();
+    startWave(wave);
+  }
+
+  function onWaveCleared(){
+    waveActive = false;
+    const bonus = 20 + wave * 4;
+    money += bonus;
+    PDAudio.playSfx('notification');
+    if (wave >= TOTAL_WAVES){
+      endGame(true);
+      return;
+    }
+    waitingNextWave = true;
+    nextWaveTimer = 5;
+    document.getElementById('wb-title').textContent = `Vague ${wave} terminée ! +${bonus} argent`;
+    document.getElementById('wb-sub').textContent = `Prochaine vague dans ${nextWaveTimer}s`;
+    document.getElementById('wave-banner').classList.add('show');
+    updateHud();
+  }
+
+  function endGame(won){
+    gameOver = true;
+    document.getElementById('end-title').textContent = won ? 'Victoire !' : 'Défaite';
+    document.getElementById('end-title').className = won ? 'win' : 'lose';
+    document.getElementById('end-sub').textContent = won
+      ? 'Tu as tenu toutes les vagues de cette bêta.'
+      : 'Ta base est tombée. Retente ta chance !';
+    document.getElementById('end-wave').textContent = `${Math.min(wave, TOTAL_WAVES)} / ${TOTAL_WAVES}`;
+    document.getElementById('end-money').textContent = money;
+    document.getElementById('end-overlay').classList.add('open');
+    PDAudio.playSfx('notification');
+  }
+
+  function quitGame(){
+    if (confirm('Quitter la partie en cours ?')) {
+      window.location.href = 'home.html';
+    }
+  }
+
+  // --- Boucle de mise à jour ---
+  function update(dt){
+    // Spawn des ennemis de la vague en cours
+    if (waveActive && spawnQueue.length){
+      spawnTimer -= dt;
+      if (spawnTimer <= 0){
+        const type = spawnQueue.shift();
+        enemies.push(makeEnemy(type, wave));
+        spawnTimer = 0.55;
+      }
+    }
+
+    // Déplacement des ennemis
+    for (const e of enemies){
+      if (e.dead) continue;
+      e.dist += e.speed * dt;
+      if (e.dist >= TOTAL_LEN){
+        e.dead = true;
+        lives -= (e.type === 'tank' ? 2 : 1);
+        if (lives <= 0){ lives = 0; endGame(false); }
+      }
+    }
+    enemies = enemies.filter(e => !e.dead);
+
+    // Tours : ciblage et tir
+    for (const t of towers){
+      t.cooldown -= dt;
+      if (t.cooldown > 0) continue;
+      let target = null, bestDist = Infinity;
+      for (const e of enemies){
+        const p = pointAtDistance(e.dist);
+        const d = Math.hypot(p.x - t.x, p.y - t.y);
+        if (d <= t.range && d < bestDist){ bestDist = d; target = e; }
+      }
+      if (target){
+        projectiles.push({ x: t.x, y: t.y, target, damage: t.damage, color: t.color, speed: 340 });
+        t.cooldown = 1 / t.fireRate;
+      }
+    }
+
+    // Projectiles
+    for (const p of projectiles){
+      if (p.target.dead){ p.hit = true; continue; }
+      const tp = pointAtDistance(p.target.dist);
+      const dx = tp.x - p.x, dy = tp.y - p.y;
+      const d = Math.hypot(dx, dy);
+      if (d < 9){
+        p.target.hp -= p.damage;
+        if (p.target.hp <= 0 && !p.target.dead){
+          p.target.dead = true;
+          money += p.target.reward;
+        }
+        p.hit = true;
+        continue;
+      }
+      const step = p.speed * dt;
+      p.x += (dx / d) * step;
+      p.y += (dy / d) * step;
+    }
+    projectiles = projectiles.filter(p => !p.hit);
+    enemies = enemies.filter(e => !e.dead);
+
+    // Fin de vague ?
+    if (waveActive && spawnQueue.length === 0 && enemies.length === 0){
+      onWaveCleared();
+    }
+
+    // Compte à rebours avant la vague suivante
+    if (waitingNextWave){
+      nextWaveTimer -= dt;
+      if (nextWaveTimer <= 0){
+        startNextWaveNow();
+      } else {
+        document.getElementById('wb-sub').textContent = `Prochaine vague dans ${Math.ceil(nextWaveTimer)}s`;
+      }
+    }
+
+    updateHud();
+  }
+
+  function updateHud(){
+    document.getElementById('hud-money').textContent = money;
+    document.getElementById('hud-lives').textContent = lives;
+    document.getElementById('hud-wave').textContent = `${Math.min(wave, TOTAL_WAVES)} / ${TOTAL_WAVES}`;
+  }
+
+  // --- Rendu (uniquement des ronds, aucun sprite) ---
+  function drawDashedCircle(x, y, r, color){
+    ctx.save();
+    ctx.setLineDash([4, 5]);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function render(){
+    ctx.clearRect(0, 0, W, H);
+
+    // Chemin
+    ctx.strokeStyle = '#2E3540';
+    ctx.lineWidth = 34;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(PATH[0].x, PATH[0].y);
+    for (const p of PATH.slice(1)) ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+
+    ctx.strokeStyle = '#3A4250';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([10, 8]);
+    ctx.beginPath();
+    ctx.moveTo(PATH[0].x, PATH[0].y);
+    for (const p of PATH.slice(1)) ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Base (grand rond + anneau de vie)
+    ctx.beginPath();
+    ctx.arc(BASE.x, BASE.y, 26, 0, Math.PI * 2);
+    ctx.fillStyle = '#2E3540';
+    ctx.fill();
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = '#3AAED8';
+    ctx.beginPath();
+    ctx.arc(BASE.x, BASE.y, 26, -Math.PI / 2, -Math.PI / 2 + (lives / 12) * Math.PI * 2);
+    ctx.stroke();
+
+    // Emplacements de construction
+    for (const spot of SPOTS){
+      if (!spot.tower){
+        drawDashedCircle(spot.x, spot.y, 20, '#5A6474');
+      }
+    }
+
+    // Tours (rond coloré + anneau de portée si survolé n'est pas géré ici, portée visible en pointillé léger)
+    for (const t of towers){
+      drawDashedCircle(t.x, t.y, t.range, 'rgba(255,255,255,0.06)');
+      ctx.beginPath();
+      ctx.arc(t.x, t.y, 16, 0, Math.PI * 2);
+      ctx.fillStyle = t.color;
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#171A20';
+      ctx.stroke();
+    }
+
+    // Ennemis (rond + anneau de vie)
+    for (const e of enemies){
+      const p = pointAtDistance(e.dist);
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, e.radius, 0, Math.PI * 2);
+      ctx.fillStyle = e.color;
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+      ctx.stroke();
+      // anneau représentant les PV restants
+      const frac = Math.max(0, e.hp / e.maxHp);
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, e.radius + 4, -Math.PI / 2, -Math.PI / 2 + frac * Math.PI * 2);
+      ctx.strokeStyle = '#F5F1E8';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    // Projectiles (petits ronds)
+    for (const p of projectiles){
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+      ctx.fillStyle = p.color;
+      ctx.fill();
+    }
+  }
+
+  function loop(ts){
+    if (lastTs === null) lastTs = ts;
+    const dt = Math.min(0.05, (ts - lastTs) / 1000);
+    lastTs = ts;
+    if (!gameOver) update(dt);
+    render();
+    requestAnimationFrame(loop);
+  }
+
+  // --- Construction / vente de tours ---
+  function canvasCoords(evt){
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const clientX = evt.touches ? evt.touches[0].clientX : evt.clientX;
+    const clientY = evt.touches ? evt.touches[0].clientY : evt.clientY;
+    return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
+  }
+
+  canvas.addEventListener('click', (evt) => {
+    if (gameOver) return;
+    const { x, y } = canvasCoords(evt);
+    for (const spot of SPOTS){
+      const d = Math.hypot(spot.x - x, spot.y - y);
+      if (d <= 22){
+        if (spot.tower){
+          // Vente : remboursement de 60% du coût
+          const refund = Math.round(TOWER_TYPES[spot.tower.typeKey].cost * 0.6);
+          money += refund;
+          towers = towers.filter(t => t !== spot.tower);
+          spot.tower = null;
+          PDAudio.playSfx('click');
+        } else {
+          const def = TOWER_TYPES[selectedType];
+          if (money >= def.cost){
+            money -= def.cost;
+            const tower = {
+              x: spot.x, y: spot.y, typeKey: selectedType,
+              damage: def.damage, range: def.range, fireRate: def.fireRate,
+              color: def.color, cooldown: 0,
+            };
+            towers.push(tower);
+            spot.tower = tower;
+            PDAudio.playSfx('click');
+          } else {
+            PDAudio.playSfx('click');
+          }
+        }
+        return;
+      }
+    }
+  });
+
+  // --- Barre de sélection des tours ---
+  function renderTowerBar(){
+    const bar = document.getElementById('towers-bar');
+    bar.innerHTML = Object.entries(TOWER_TYPES).map(([key, t]) => `
+      <div class="tower-btn ${key === selectedType ? 'selected' : ''}" onclick="PDAudio.playSfx('click'); selectTower('${key}');">
+        <div class="t-name"><span class="t-dot" style="background:${t.color}"></span>${t.name}</div>
+        <div class="t-desc">${t.desc} · dégâts ${t.damage} · portée ${t.range}</div>
+        <div class="t-cost">${t.cost} $</div>
+      </div>
+    `).join('');
+  }
+
+  function selectTower(key){
+    selectedType = key;
+    renderTowerBar();
+  }
+
+  // --- Paramètres (identique au reste du site) ---
+  function openSettings(){
+    const s = PDAudio.get();
+    document.getElementById('opt-mute-all').checked = s.muteAll;
+    document.getElementById('opt-master').value = s.masterVolume;
+    document.getElementById('opt-music-enabled').checked = s.musicEnabled;
+    document.getElementById('opt-music-vol').value = s.musicVolume;
+    document.getElementById('opt-sfx-enabled').checked = s.sfxEnabled;
+    document.getElementById('opt-sfx-vol').value = s.sfxVolume;
+    document.getElementById('settings-overlay').classList.add('open');
+  }
+  function closeSettings(){
+    document.getElementById('settings-overlay').classList.remove('open');
+  }
+  function onSettingChange(){
+    PDAudio.update({
+      muteAll: document.getElementById('opt-mute-all').checked,
+      masterVolume: Number(document.getElementById('opt-master').value),
+      musicEnabled: document.getElementById('opt-music-enabled').checked,
+      musicVolume: Number(document.getElementById('opt-music-vol').value),
+      sfxEnabled: document.getElementById('opt-sfx-enabled').checked,
+      sfxVolume: Number(document.getElementById('opt-sfx-vol').value),
+    });
+  }
+  function resetSettings(){
+    PDAudio.reset();
+    openSettings();
+  }
+
+  // --- Initialisation ---
+  renderTowerBar();
+  updateHud();
+  startWave(1);
+  PDAudio.registerMusic(document.getElementById('bg-music'));
+  PDAudio.armFirstInteraction();
+  requestAnimationFrame(loop);
+</script>
+</body>
+</html>

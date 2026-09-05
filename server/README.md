@@ -53,10 +53,26 @@ Render réelle du service une fois déployé.
 | GET | `/api/auth/discord` | Démarre le flux OAuth Discord |
 | GET | `/api/me` | Profil du joueur connecté (ELO, rang, stats) — nécessite `Authorization: Bearer <token>` |
 
+## Système de lancement de partie & bêta jouable
+
+Le bouton **Jouer** (page d'accueil) ouvre désormais une vraie file d'attente :
+recherche d'adversaire avec minuteur et annulation, puis un écran « Partie
+trouvée » avec avatar/pseudo simulés et un compte à rebours de 3 secondes
+avant de lancer la partie. Cette recherche est **simulée côté client** (délai
+aléatoire, adversaire tiré au sort) en attendant un vrai serveur de
+matchmaking temps réel.
+
+À l'issue du compte à rebours, le joueur est redirigé vers `game.html`, une
+**bêta jouable en solo** du concept Tower Defense : tours, ennemis, projectiles
+et base sont tous représentés par de simples ronds (aucun sprite/graphisme),
+pour valider la boucle de jeu (construire → défendre les vagues → gérer son
+économie → survivre à 10 vagues). Le mode 1V1/2V2 réel contre un adversaire en
+ligne n'est pas encore branché — voir « Étapes suivantes » ci-dessous.
+
 ## Système de paramètres (audio)
 
-Le bouton ⚙ (page d'accueil et page de connexion) ouvre une modale de paramètres
-qui gère :
+Le bouton ⚙ (accueil, connexion, et pendant la partie) ouvre une modale de
+paramètres qui gère :
 - Un volume général.
 - La musique de fond du menu (activer/désactiver + volume).
 - Les effets sonores / bruitages (clics, notifications) (activer/désactiver + volume).
@@ -75,6 +91,9 @@ tu en auras.
 - Ajouter la mise à jour de l'ELO après chaque partie (calcul basé sur
   l'écart d'ELO entre les deux joueurs, comme décrit dans le concept du jeu).
 - Ajouter un serveur de matchmaking/temps réel (ex. via WebSocket) — peut être
-  déployé comme un second Web Service Render.
+  déployé comme un second Web Service Render — pour remplacer la recherche
+  simulée et permettre un vrai duel 1V1/2V2 (deux navigateurs synchronisés).
+- Remplacer les ronds de la bêta par de vrais graphismes/sprites une fois le
+  gameplay validé.
 - Brancher de vrais effets sonores de jeu (construction de tour, vague
   d'ennemis, victoire/défaite) sur `PDAudio.playSfx(...)`.

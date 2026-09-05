@@ -228,6 +228,63 @@
   }
   .switch input:checked + .slider-toggle{ background: rgba(58,174,216,0.25); border-color: var(--blue); }
   .switch input:checked + .slider-toggle::before{ background: var(--blue); transform: translateX(18px); }
+
+  .beta-badge{
+    font-family: var(--font-display); font-size:0.65rem; font-weight:700;
+    background: rgba(228,87,46,0.18); color: var(--red);
+    border:1px solid rgba(228,87,46,0.4);
+    padding: 2px 7px; border-radius:6px; letter-spacing:0.05em;
+    margin-left: 8px; vertical-align: middle;
+  }
+
+  /* --- Système de lancement de partie (matchmaking) --- */
+  .mm-overlay{
+    position:fixed; inset:0; background: rgba(10,12,16,0.78);
+    display:none; align-items:center; justify-content:center;
+    z-index:120; padding:20px;
+  }
+  .mm-overlay.open{ display:flex; }
+  .mm-card{
+    background: var(--panel); border:1px solid var(--line);
+    border-radius:18px; padding:34px 28px; width:100%; max-width:380px;
+    text-align:center;
+  }
+  .mm-mode{
+    font-family: var(--font-display); font-weight:700; font-size:0.8rem;
+    color: var(--text-dim); text-transform:uppercase; letter-spacing:0.06em;
+    margin-bottom:20px;
+  }
+  .mm-spinner{
+    width:64px; height:64px; margin:0 auto 22px;
+    border-radius:50%;
+    border: 4px solid var(--panel-alt);
+    border-top-color: var(--blue);
+    animation: mm-spin 0.9s linear infinite;
+  }
+  @keyframes mm-spin{ to{ transform: rotate(360deg); } }
+  .mm-status{ font-size:0.95rem; margin-bottom:10px; min-height:1.3em; }
+  .mm-timer{ font-family: var(--font-display); font-size:1.6rem; color: var(--yellow); margin-bottom:24px; }
+  .mm-cancel{
+    background: transparent; border:1px solid var(--line); color: var(--text-dim);
+    border-radius:9px; padding:10px 22px; font-family: var(--font-display);
+    font-size:0.85rem; cursor:pointer;
+  }
+  .mm-cancel:hover{ color: var(--red); border-color: var(--red); }
+
+  .mm-vs{ display:flex; align-items:center; justify-content:center; gap:18px; margin-bottom:22px; }
+  .mm-player{ display:flex; flex-direction:column; align-items:center; gap:8px; font-size:0.85rem; }
+  .mm-avatar{
+    width:52px; height:52px; border-radius:50%;
+    background: var(--panel-alt); border:2px solid var(--line);
+    display:flex; align-items:center; justify-content:center;
+    font-family: var(--font-display); font-weight:700; font-size:1.2rem; color: var(--blue);
+  }
+  .mm-player.opp .mm-avatar{ color: var(--red); }
+  .mm-vs-label{ font-family: var(--font-display); font-weight:700; color: var(--text-dim); }
+  .mm-countdown{
+    font-family: var(--font-display); font-weight:700; font-size:2.6rem;
+    color: var(--yellow);
+  }
 </style>
 </head>
 <body>
@@ -241,7 +298,7 @@
         <rect x="12" y="10" width="6" height="18" fill="#E4572E"/>
         <rect x="22" y="4" width="6" height="24" fill="#3AAED8"/>
       </svg>
-      Playground Defense
+      Playground Defense<span class="beta-badge">BÊTA</span>
     </div>
     <div class="header-actions">
       <div class="player-block">
@@ -387,6 +444,36 @@
   </div>
 </div>
 
+<!-- Lancement de partie / Matchmaking -->
+<div class="mm-overlay" id="mm-overlay">
+  <div class="mm-card">
+    <div class="mm-mode" id="mm-mode-label">1V1 Classé</div>
+
+    <div id="mm-searching">
+      <div class="mm-spinner"></div>
+      <div class="mm-status" id="mm-status">Recherche d'un adversaire</div>
+      <div class="mm-timer" id="mm-timer">00:00</div>
+      <button class="mm-cancel" id="mm-cancel-btn" onclick="cancelMatchmaking()">Annuler</button>
+    </div>
+
+    <div id="mm-found" style="display:none;">
+      <div class="mm-vs">
+        <div class="mm-player you">
+          <div class="mm-avatar" id="mm-you-avatar">?</div>
+          <div id="mm-you-name">Toi</div>
+        </div>
+        <div class="mm-vs-label">VS</div>
+        <div class="mm-player opp">
+          <div class="mm-avatar" id="mm-opp-avatar">?</div>
+          <div id="mm-opp-name">—</div>
+        </div>
+      </div>
+      <div class="mm-status">Partie trouvée !</div>
+      <div class="mm-countdown" id="mm-countdown">3</div>
+    </div>
+  </div>
+</div>
+
 <script src="js/audio-settings.js"></script>
 <script>
   const API_BASE = "";
@@ -400,9 +487,89 @@
       `Matchmaking classé — ${mode === '1v1' ? '1V1' : '2V2'}`;
   }
 
+  let mmTimerInterval = null;
+  let mmDotsInterval = null;
+  let mmTimeoutId = null;
+  let mmCountdownInterval = null;
+  let mmElapsed = 0;
+  let mmCancelled = false;
+
+  const DEMO_OPPONENTS = ['Nova', 'ChalkKing', 'DuoRex', 'Pixelou', 'Lyra', 'Kestrel', 'Miro', 'Tanka'];
+
   function findMatch(){
-    alert(`Recherche de partie ${currentMode.toUpperCase()} lancée… (à brancher sur le serveur de matchmaking)`);
-    setTimeout(() => PDAudio.playSfx('notification'), 400);
+    mmCancelled = false;
+    mmElapsed = 0;
+    document.getElementById('mm-mode-label').textContent =
+      currentMode === '1v1' ? '1V1 Classé' : '2V2 Classé';
+    document.getElementById('mm-searching').style.display = 'block';
+    document.getElementById('mm-found').style.display = 'none';
+    document.getElementById('mm-timer').textContent = '00:00';
+    document.getElementById('mm-overlay').classList.add('open');
+
+    let dotCount = 0;
+    mmDotsInterval = setInterval(() => {
+      dotCount = (dotCount + 1) % 4;
+      document.getElementById('mm-status').textContent = "Recherche d'un adversaire" + '.'.repeat(dotCount);
+    }, 450);
+
+    mmTimerInterval = setInterval(() => {
+      mmElapsed++;
+      const m = String(Math.floor(mmElapsed / 60)).padStart(2, '0');
+      const s = String(mmElapsed % 60).padStart(2, '0');
+      document.getElementById('mm-timer').textContent = `${m}:${s}`;
+    }, 1000);
+
+    // Simule la recherche d'un adversaire (le vrai serveur de matchmaking temps réel
+    // viendra remplacer ce délai simulé — voir server/README.md, "Étapes suivantes")
+    const delay = 2200 + Math.random() * 3200;
+    mmTimeoutId = setTimeout(() => {
+      if (mmCancelled) return;
+      onMatchFound();
+    }, delay);
+  }
+
+  function cancelMatchmaking(){
+    mmCancelled = true;
+    clearInterval(mmTimerInterval);
+    clearInterval(mmDotsInterval);
+    clearTimeout(mmTimeoutId);
+    PDAudio.playSfx('click');
+    document.getElementById('mm-overlay').classList.remove('open');
+  }
+
+  function onMatchFound(){
+    clearInterval(mmTimerInterval);
+    clearInterval(mmDotsInterval);
+    PDAudio.playSfx('notification');
+
+    document.getElementById('mm-searching').style.display = 'none';
+    document.getElementById('mm-found').style.display = 'block';
+
+    const youName = document.getElementById('player-name').textContent || 'Toi';
+    document.getElementById('mm-you-name').textContent = youName;
+    document.getElementById('mm-you-avatar').textContent = youName.charAt(0).toUpperCase();
+
+    const opp = DEMO_OPPONENTS[Math.floor(Math.random() * DEMO_OPPONENTS.length)];
+    document.getElementById('mm-opp-name').textContent = opp;
+    document.getElementById('mm-opp-avatar').textContent = opp.charAt(0).toUpperCase();
+
+    let count = 3;
+    const countdownEl = document.getElementById('mm-countdown');
+    countdownEl.textContent = count;
+    mmCountdownInterval = setInterval(() => {
+      count--;
+      if (count <= 0) {
+        clearInterval(mmCountdownInterval);
+        launchGame(opp);
+        return;
+      }
+      countdownEl.textContent = count;
+      PDAudio.playSfx('click');
+    }, 800);
+  }
+
+  function launchGame(opponentName){
+    window.location.href = `game.html?mode=${currentMode}&opponent=${encodeURIComponent(opponentName)}`;
   }
 
   function logout(){
