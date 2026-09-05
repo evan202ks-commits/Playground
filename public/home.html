@@ -285,6 +285,65 @@
     font-family: var(--font-display); font-weight:700; font-size:2.6rem;
     color: var(--yellow);
   }
+
+  /* --- Lobby 2 joueurs réels (beta) --- */
+  .lobby-code-box{
+    background: var(--panel-alt); border-radius:12px; padding:18px 16px;
+    margin-bottom:18px;
+  }
+  .lobby-code-label{ font-size:0.75rem; color: var(--text-dim); text-transform:uppercase;
+    letter-spacing:0.07em; margin-bottom:8px; }
+  .lobby-code-value{
+    font-family: var(--font-display); font-size:2rem; font-weight:700;
+    letter-spacing:0.18em; color: var(--yellow); cursor:pointer;
+    user-select:all;
+  }
+  .lobby-code-hint{ font-size:0.72rem; color: var(--text-dim); margin-top:6px; }
+  .lobby-sep{ display:flex; align-items:center; gap:10px; margin:14px 0;
+    font-size:0.78rem; color: var(--text-dim); }
+  .lobby-sep::before,.lobby-sep::after{ content:''; flex:1; height:1px; background: var(--line); }
+  .lobby-join-row{ display:flex; gap:8px; }
+  .lobby-join-input{
+    flex:1; background: var(--panel-alt); border:1px solid var(--line);
+    border-radius:9px; padding:10px 12px; color: var(--text);
+    font-family: var(--font-display); font-size:1rem; letter-spacing:0.1em;
+    text-transform:uppercase; outline:none;
+  }
+  .lobby-join-input:focus{ border-color: var(--blue); }
+  .lobby-join-btn{
+    background: var(--blue); color:#fff; border:none; border-radius:9px;
+    padding:10px 16px; font-family: var(--font-display); font-size:0.85rem;
+    cursor:pointer; white-space:nowrap;
+  }
+  .lobby-join-btn:hover{ opacity:0.85; }
+  .lobby-slots{ display:flex; gap:12px; margin-bottom:18px; justify-content:center; }
+  .lobby-slot{
+    display:flex; flex-direction:column; align-items:center; gap:6px;
+    font-size:0.8rem;
+  }
+  .lobby-slot-avatar{
+    width:48px; height:48px; border-radius:50%;
+    background: var(--panel-alt); border:2px dashed var(--line);
+    display:flex; align-items:center; justify-content:center;
+    font-family: var(--font-display); font-weight:700; font-size:1.1rem;
+    color: var(--text-dim); transition: border-color .25s, color .25s;
+  }
+  .lobby-slot-avatar.filled{ border-style:solid; border-color: var(--blue); color: var(--blue); }
+  .lobby-slot-avatar.filled.opp{ border-color: var(--red); color: var(--red); }
+  .lobby-slot-name{ color: var(--text-dim); max-width:80px; overflow:hidden;
+    text-overflow:ellipsis; white-space:nowrap; }
+  .lobby-slot-name.filled{ color: var(--text); }
+  .lobby-ready-row{ display:flex; gap:10px; justify-content:center; margin-bottom:6px; }
+  .lobby-ready-btn{
+    background: var(--green,#27ae60); color:#fff; border:none; border-radius:9px;
+    padding:12px 26px; font-family: var(--font-display); font-size:0.95rem;
+    cursor:pointer; transition: opacity .2s;
+  }
+  .lobby-ready-btn:disabled{ opacity:0.45; cursor:not-allowed; }
+  .lobby-ready-btn:not(:disabled):hover{ opacity:0.85; }
+  .lobby-status-msg{ font-size:0.82rem; color: var(--text-dim); min-height:1.2em; margin-bottom:4px; }
+  .lobby-vs-label{ font-family:var(--font-display); font-weight:700; color:var(--text-dim);
+    font-size:1rem; align-self:center; margin-top:-10px; }
 </style>
 </head>
 <body>
@@ -449,28 +508,57 @@
   <div class="mm-card">
     <div class="mm-mode" id="mm-mode-label">1V1 Classé</div>
 
-    <div id="mm-searching">
-      <div class="mm-spinner"></div>
-      <div class="mm-status" id="mm-status">Recherche d'un adversaire</div>
-      <div class="mm-timer" id="mm-timer">00:00</div>
-      <button class="mm-cancel" id="mm-cancel-btn" onclick="cancelMatchmaking()">Annuler</button>
-    </div>
-
-    <div id="mm-found" style="display:none;">
-      <div class="mm-vs">
-        <div class="mm-player you">
-          <div class="mm-avatar" id="mm-you-avatar">?</div>
-          <div id="mm-you-name">Toi</div>
+    <!-- Phase 1 : choisir créer ou rejoindre -->
+    <div id="mm-lobby-pick">
+      <div class="mm-status" style="margin-bottom:18px;">Joue contre un vrai adversaire&nbsp;!</div>
+      <div class="lobby-slots">
+        <div class="lobby-slot">
+          <div class="lobby-slot-avatar filled" id="lp-you-av">?</div>
+          <div class="lobby-slot-name filled" id="lp-you-name">Toi</div>
         </div>
-        <div class="mm-vs-label">VS</div>
-        <div class="mm-player opp">
-          <div class="mm-avatar" id="mm-opp-avatar">?</div>
-          <div id="mm-opp-name">—</div>
+        <div class="lobby-vs-label">VS</div>
+        <div class="lobby-slot">
+          <div class="lobby-slot-avatar" id="lp-opp-av">?</div>
+          <div class="lobby-slot-name" id="lp-opp-name">En attente…</div>
         </div>
       </div>
-      <div class="mm-status">Partie trouvée !</div>
-      <div class="mm-countdown" id="mm-countdown">3</div>
+      <div class="lobby-code-box">
+        <div class="lobby-code-label">Ton code de room</div>
+        <div class="lobby-code-value" id="lobby-code-display" title="Cliquer pour copier">——</div>
+        <div class="lobby-code-hint">Partage ce code à ton adversaire</div>
+      </div>
+      <div class="lobby-sep">ou rejoins une room</div>
+      <div class="lobby-join-row">
+        <input class="lobby-join-input" id="lobby-join-input" maxlength="6" placeholder="CODE" autocomplete="off" />
+        <button class="lobby-join-btn" onclick="joinLobby()">Rejoindre</button>
+      </div>
+      <div class="lobby-status-msg" id="lobby-join-err"></div>
+      <br/>
+      <button class="mm-cancel" onclick="cancelMatchmaking()">Annuler</button>
     </div>
+
+    <!-- Phase 2 : en attente que l'adversaire soit prêt -->
+    <div id="mm-lobby-wait" style="display:none;">
+      <div class="lobby-slots">
+        <div class="lobby-slot">
+          <div class="lobby-slot-avatar filled" id="lw-you-av">?</div>
+          <div class="lobby-slot-name filled" id="lw-you-name">Toi</div>
+        </div>
+        <div class="lobby-vs-label">VS</div>
+        <div class="lobby-slot">
+          <div class="lobby-slot-avatar opp filled" id="lw-opp-av">?</div>
+          <div class="lobby-slot-name filled" id="lw-opp-name">—</div>
+        </div>
+      </div>
+      <div class="lobby-status-msg" id="lobby-wait-msg">En attente de la confirmation adverse…</div>
+      <div class="lobby-ready-row">
+        <button class="lobby-ready-btn" id="lobby-ready-btn" onclick="setReady()">✔ Je suis prêt !</button>
+      </div>
+      <div class="mm-countdown" id="mm-countdown" style="display:none;">3</div>
+      <br/>
+      <button class="mm-cancel" onclick="cancelMatchmaking()">Quitter</button>
+    </div>
+
   </div>
 </div>
 
@@ -487,85 +575,229 @@
       `Matchmaking classé — ${mode === '1v1' ? '1V1' : '2V2'}`;
   }
 
-  let mmTimerInterval = null;
-  let mmDotsInterval = null;
-  let mmTimeoutId = null;
   let mmCountdownInterval = null;
-  let mmElapsed = 0;
-  let mmCancelled = false;
 
-  const DEMO_OPPONENTS = ['Nova', 'ChalkKing', 'DuoRex', 'Pixelou', 'Lyra', 'Kestrel', 'Miro', 'Tanka'];
+  /* =====================================================
+     LOBBY 2 JOUEURS RÉELS (beta)
+     Utilise localStorage pour synchroniser deux onglets /
+     deux fenêtres sur le même appareil, ou deux appareils
+     partageant le même navigateur (ex: deux téléphones sur
+     un compte Google Chrome synchronisé) ou simplement deux
+     joueurs sur la même machine.
+     Clé de stockage : pd_lobby_<CODE>
+     Structure : { host, guest, hostReady, guestReady, mode, ts }
+  ===================================================== */
+
+  const LOBBY_TTL = 5 * 60 * 1000; // 5 min
+  let lobbyCode = null;
+  let lobbyRole = null; // 'host' | 'guest'
+  let lobbyPollId = null;
+  let lobbyCountdown = 0;
+  let lobbyCountdownId = null;
+  let myName = '';
+
+  function lobbyKey(code){ return `pd_lobby_${code}`; }
+
+  function lobbyRead(code){
+    try {
+      const raw = localStorage.getItem(lobbyKey(code));
+      if (!raw) return null;
+      const d = JSON.parse(raw);
+      if (Date.now() - d.ts > LOBBY_TTL){ localStorage.removeItem(lobbyKey(code)); return null; }
+      return d;
+    } catch(e){ return null; }
+  }
+
+  function lobbyWrite(data){
+    data.ts = Date.now();
+    localStorage.setItem(lobbyKey(data.code), JSON.stringify(data));
+  }
+
+  function lobbyRemove(code){
+    localStorage.removeItem(lobbyKey(code));
+  }
+
+  function makeCode(){
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let s = '';
+    for(let i=0;i<6;i++) s += chars[Math.floor(Math.random()*chars.length)];
+    return s;
+  }
 
   function findMatch(){
-    mmCancelled = false;
-    mmElapsed = 0;
+    myName = document.getElementById('player-name').textContent || 'Joueur';
+    lobbyCode = makeCode();
+    lobbyRole = 'host';
+
+    // Crée la room dans localStorage
+    lobbyWrite({ code: lobbyCode, host: myName, guest: null,
+      hostReady: false, guestReady: false, mode: currentMode });
+
     document.getElementById('mm-mode-label').textContent =
       currentMode === '1v1' ? '1V1 Classé' : '2V2 Classé';
-    document.getElementById('mm-searching').style.display = 'block';
-    document.getElementById('mm-found').style.display = 'none';
-    document.getElementById('mm-timer').textContent = '00:00';
     document.getElementById('mm-overlay').classList.add('open');
 
-    let dotCount = 0;
-    mmDotsInterval = setInterval(() => {
-      dotCount = (dotCount + 1) % 4;
-      document.getElementById('mm-status').textContent = "Recherche d'un adversaire" + '.'.repeat(dotCount);
-    }, 450);
-
-    mmTimerInterval = setInterval(() => {
-      mmElapsed++;
-      const m = String(Math.floor(mmElapsed / 60)).padStart(2, '0');
-      const s = String(mmElapsed % 60).padStart(2, '0');
-      document.getElementById('mm-timer').textContent = `${m}:${s}`;
-    }, 1000);
-
-    // Simule la recherche d'un adversaire (le vrai serveur de matchmaking temps réel
-    // viendra remplacer ce délai simulé — voir server/README.md, "Étapes suivantes")
-    const delay = 2200 + Math.random() * 3200;
-    mmTimeoutId = setTimeout(() => {
-      if (mmCancelled) return;
-      onMatchFound();
-    }, delay);
+    showLobbyPick();
+    startLobbyPoll();
   }
 
-  function cancelMatchmaking(){
-    mmCancelled = true;
-    clearInterval(mmTimerInterval);
-    clearInterval(mmDotsInterval);
-    clearTimeout(mmTimeoutId);
-    PDAudio.playSfx('click');
-    document.getElementById('mm-overlay').classList.remove('open');
+  function showLobbyPick(){
+    document.getElementById('mm-lobby-pick').style.display = 'block';
+    document.getElementById('mm-lobby-wait').style.display = 'none';
+
+    const name = myName || 'Toi';
+    document.getElementById('lp-you-av').textContent = name.charAt(0).toUpperCase();
+    document.getElementById('lp-you-name').textContent = name;
+    document.getElementById('lp-opp-av').textContent = '?';
+    document.getElementById('lp-opp-name').textContent = 'En attente…';
+    document.getElementById('lobby-join-err').textContent = '';
+
+    const codeEl = document.getElementById('lobby-code-display');
+    codeEl.textContent = lobbyCode;
+    codeEl.onclick = () => {
+      navigator.clipboard.writeText(lobbyCode).catch(()=>{});
+      codeEl.style.color = 'var(--green,#27ae60)';
+      setTimeout(()=>{ codeEl.style.color=''; }, 1000);
+      PDAudio.playSfx('click');
+    };
   }
 
-  function onMatchFound(){
-    clearInterval(mmTimerInterval);
-    clearInterval(mmDotsInterval);
+  function showLobbyWait(opponentName, iAmReady){
+    document.getElementById('mm-lobby-pick').style.display = 'none';
+    document.getElementById('mm-lobby-wait').style.display = 'block';
+    document.getElementById('mm-countdown').style.display = 'none';
+
+    const name = myName || 'Toi';
+    document.getElementById('lw-you-av').textContent = name.charAt(0).toUpperCase();
+    document.getElementById('lw-you-name').textContent = name;
+    document.getElementById('lw-opp-av').textContent = opponentName.charAt(0).toUpperCase();
+    document.getElementById('lw-opp-name').textContent = opponentName;
+
+    const btn = document.getElementById('lobby-ready-btn');
+    btn.disabled = iAmReady;
+    btn.textContent = iAmReady ? '✔ Prêt !' : '✔ Je suis prêt !';
+    document.getElementById('lobby-wait-msg').textContent =
+      iAmReady ? 'En attente de la confirmation adverse…' : 'Confirme que tu es prêt pour lancer la partie.';
+  }
+
+  function joinLobby(){
+    const code = document.getElementById('lobby-join-input').value.trim().toUpperCase();
+    const errEl = document.getElementById('lobby-join-err');
+    if(code.length < 4){ errEl.textContent = 'Code trop court.'; return; }
+
+    const data = lobbyRead(code);
+    if(!data){ errEl.textContent = 'Room introuvable ou expirée.'; return; }
+    if(data.guest){ errEl.textContent = 'Cette room est déjà complète.'; return; }
+    if(data.host === myName){ errEl.textContent = 'Tu ne peux pas rejoindre ta propre room !'; return; }
+
+    // Rejoindre la room
+    lobbyCode = code;
+    lobbyRole = 'guest';
+    data.guest = myName;
+    lobbyWrite(data);
     PDAudio.playSfx('notification');
+    showLobbyWait(data.host, false);
+    startLobbyPoll();
+  }
 
-    document.getElementById('mm-searching').style.display = 'none';
-    document.getElementById('mm-found').style.display = 'block';
+  function setReady(){
+    const data = lobbyRead(lobbyCode);
+    if(!data){ cancelMatchmaking(); return; }
+    if(lobbyRole === 'host') data.hostReady = true;
+    else data.guestReady = true;
+    lobbyWrite(data);
+    PDAudio.playSfx('click');
 
-    const youName = document.getElementById('player-name').textContent || 'Toi';
-    document.getElementById('mm-you-name').textContent = youName;
-    document.getElementById('mm-you-avatar').textContent = youName.charAt(0).toUpperCase();
+    const oppName = lobbyRole === 'host' ? data.guest : data.host;
+    showLobbyWait(oppName || '—', true);
+  }
 
-    const opp = DEMO_OPPONENTS[Math.floor(Math.random() * DEMO_OPPONENTS.length)];
-    document.getElementById('mm-opp-name').textContent = opp;
-    document.getElementById('mm-opp-avatar').textContent = opp.charAt(0).toUpperCase();
+  function startLobbyPoll(){
+    clearInterval(lobbyPollId);
+    lobbyPollId = setInterval(lobbyPollTick, 600);
+  }
+
+  function lobbyPollTick(){
+    const data = lobbyRead(lobbyCode);
+    if(!data){ cancelMatchmaking(); return; }
+
+    // Adversaire a rejoint → passer en phase wait
+    const waiting = document.getElementById('mm-lobby-wait').style.display !== 'none';
+    const oppName = lobbyRole === 'host' ? data.guest : data.host;
+
+    if(!waiting && oppName){
+      PDAudio.playSfx('notification');
+      const iAmReady = lobbyRole === 'host' ? data.hostReady : data.guestReady;
+      showLobbyWait(oppName, iAmReady);
+    }
+
+    // Mettre à jour le nom de l'adversaire dans pick si pas encore en wait
+    if(!waiting){
+      if(oppName){
+        document.getElementById('lp-opp-av').textContent = oppName.charAt(0).toUpperCase();
+        document.getElementById('lp-opp-name').textContent = oppName;
+      }
+    }
+
+    // Les deux sont prêts → lancer le countdown
+    if(data.hostReady && data.guestReady){
+      clearInterval(lobbyPollId);
+      startLaunchCountdown(oppName);
+      return;
+    }
+
+    // Mettre à jour le bouton si l'adversaire a confirmé
+    if(waiting){
+      const btn = document.getElementById('lobby-ready-btn');
+      const iAmReady = lobbyRole === 'host' ? data.hostReady : data.guestReady;
+      const oppReady = lobbyRole === 'host' ? data.guestReady : data.hostReady;
+      if(iAmReady){
+        btn.disabled = true;
+        btn.textContent = '✔ Prêt !';
+        document.getElementById('lobby-wait-msg').textContent = oppReady
+          ? 'Les deux joueurs sont prêts !'
+          : 'En attente de la confirmation adverse…';
+      }
+    }
+  }
+
+  function startLaunchCountdown(opponentName){
+    PDAudio.playSfx('notification');
+    const countdownEl = document.getElementById('mm-countdown');
+    countdownEl.style.display = 'block';
+    document.getElementById('lobby-wait-msg').textContent = 'Les deux joueurs sont prêts !';
+    document.getElementById('lobby-ready-btn').style.display = 'none';
 
     let count = 3;
-    const countdownEl = document.getElementById('mm-countdown');
     countdownEl.textContent = count;
-    mmCountdownInterval = setInterval(() => {
+    lobbyCountdownId = setInterval(()=>{
       count--;
-      if (count <= 0) {
-        clearInterval(mmCountdownInterval);
-        launchGame(opp);
+      if(count <= 0){
+        clearInterval(lobbyCountdownId);
+        lobbyRemove(lobbyCode);
+        launchGame(opponentName);
         return;
       }
       countdownEl.textContent = count;
       PDAudio.playSfx('click');
     }, 800);
+  }
+
+  function cancelMatchmaking(){
+    clearInterval(lobbyPollId);
+    clearInterval(lobbyCountdownId);
+    if(lobbyCode) lobbyRemove(lobbyCode);
+    lobbyCode = null;
+    lobbyRole = null;
+    PDAudio.playSfx('click');
+    document.getElementById('mm-overlay').classList.remove('open');
+    // Réinitialiser
+    document.getElementById('mm-lobby-pick').style.display = 'block';
+    document.getElementById('mm-lobby-wait').style.display = 'none';
+    document.getElementById('lobby-ready-btn').style.display = '';
+    document.getElementById('mm-countdown').style.display = 'none';
+    document.getElementById('lobby-join-input').value = '';
+    document.getElementById('lobby-join-err').textContent = '';
   }
 
   function launchGame(opponentName){
