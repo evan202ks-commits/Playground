@@ -53,10 +53,28 @@ Render réelle du service une fois déployé.
 | GET | `/api/auth/discord` | Démarre le flux OAuth Discord |
 | GET | `/api/me` | Profil du joueur connecté (ELO, rang, stats) — nécessite `Authorization: Bearer <token>` |
 
+## Système de paramètres (audio)
+
+Le bouton ⚙ (page d'accueil et page de connexion) ouvre une modale de paramètres
+qui gère :
+- Un volume général.
+- La musique de fond du menu (activer/désactiver + volume).
+- Les effets sonores / bruitages (clics, notifications) (activer/désactiver + volume).
+- Un interrupteur « couper tous les sons ».
+
+Les réglages sont sauvegardés dans `localStorage` (clé `pd_settings`) et
+s'appliquent immédiatement, sans backend. La logique est centralisée dans
+`public/js/audio-settings.js` (objet `window.PDAudio`), réutilisable telle
+quelle pour un futur écran de jeu. Les fichiers audio de démonstration se
+trouvent dans `public/audio/` (`menu-music.mp3`, `sfx-click.mp3`,
+`sfx-notification.mp3`) — à remplacer par tes propres pistes/bruitages quand
+tu en auras.
+
 ## Étapes suivantes suggérées
 
 - Ajouter la mise à jour de l'ELO après chaque partie (calcul basé sur
   l'écart d'ELO entre les deux joueurs, comme décrit dans le concept du jeu).
 - Ajouter un serveur de matchmaking/temps réel (ex. via WebSocket) — peut être
   déployé comme un second Web Service Render.
-- Ajouter un écran de paramètres (déjà prévu comme bouton dans `home.html`).
+- Brancher de vrais effets sonores de jeu (construction de tour, vague
+  d'ennemis, victoire/défaite) sur `PDAudio.playSfx(...)`.

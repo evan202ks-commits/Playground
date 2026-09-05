@@ -174,6 +174,60 @@
   .stat-strip{ display:flex; gap: 18px; margin-top: 4px; }
   .stat-strip div{ font-size:0.8rem; color: var(--text-dim); }
   .stat-strip strong{ color: var(--text); font-family: var(--font-display); }
+
+  /* --- Modale Paramètres (audio : musique, effets sonores, volumes) --- */
+  .settings-overlay{
+    position:fixed; inset:0; background: rgba(10,12,16,0.6);
+    display:none; align-items:center; justify-content:center;
+    z-index:100; padding:20px;
+  }
+  .settings-overlay.open{ display:flex; }
+  .settings-modal{
+    background: var(--panel); border:1px solid var(--line);
+    border-radius:16px; width:100%; max-width:440px;
+    max-height:88vh; overflow-y:auto;
+  }
+  .settings-header{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:18px 20px; border-bottom:1px solid var(--line);
+  }
+  .settings-header h3{ margin:0; font-family: var(--font-display); font-size:1.05rem; }
+  .settings-body{ padding:18px 20px; display:flex; flex-direction:column; gap:16px; }
+  .settings-row{ display:flex; flex-direction:column; gap:8px; }
+  .settings-row.toggle-row{ flex-direction:row; align-items:center; justify-content:space-between; gap:12px; }
+  .settings-label{ font-size:0.9rem; font-weight:600; }
+  .settings-sub{ font-size:0.76rem; color: var(--text-dim); margin-top:2px; }
+  .settings-divider{ height:1px; background: var(--line); margin:2px 0; }
+  .settings-row input[type=range]{ width:100%; accent-color: var(--blue); height:4px; }
+  .settings-vol-row{ display:flex; align-items:center; gap:10px; }
+  .settings-vol-row input[type=range]{ flex:1; }
+  .settings-test-btn{
+    flex-shrink:0; background: var(--panel-alt); color: var(--text-dim);
+    border:1px solid var(--line); border-radius:7px;
+    padding:7px 12px; font-size:0.76rem; cursor:pointer;
+  }
+  .settings-test-btn:hover{ color: var(--text); border-color: var(--blue); }
+  .settings-footer{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:16px 20px; border-top:1px solid var(--line);
+  }
+  .settings-reset{ background:transparent; border:none; color: var(--text-dim); font-size:0.82rem; cursor:pointer; }
+  .settings-reset:hover{ color: var(--red); }
+  .settings-close{ padding:10px 22px; font-size:0.9rem; }
+
+  .switch{ position:relative; display:inline-block; width:42px; height:24px; flex-shrink:0; }
+  .switch input{ opacity:0; width:0; height:0; position:absolute; }
+  .slider-toggle{
+    position:absolute; cursor:pointer; inset:0;
+    background: var(--panel-alt); border:1px solid var(--line);
+    border-radius:999px; transition:.15s;
+  }
+  .slider-toggle::before{
+    content:""; position:absolute; height:16px; width:16px; left:2px; top:2px;
+    background: var(--text-dim); border-radius:50%; transition:.15s;
+  }
+  .switch input:checked + .slider-toggle{ background: rgba(58,174,216,0.25); border-color: var(--blue); }
+  .switch input:checked + .slider-toggle::before{ background: var(--blue); transform: translateX(18px); }
 </style>
 </head>
 <body>
@@ -197,8 +251,8 @@
           <div class="player-sub" id="player-sub">—</div>
         </div>
       </div>
-      <div class="icon-btn" title="Paramètres" onclick="alert('Écran des paramètres à construire ensuite.')">⚙</div>
-      <div class="icon-btn" title="Déconnexion" onclick="logout()">⏻</div>
+      <div class="icon-btn" title="Paramètres" onclick="PDAudio.playSfx('click'); openSettings();">⚙</div>
+      <div class="icon-btn" title="Déconnexion" onclick="PDAudio.playSfx('click'); logout();">⏻</div>
     </div>
   </header>
 
@@ -209,12 +263,12 @@
         <p>Choisis ton format, lance le matchmaking et grimpe dans le classement de la saison.</p>
 
         <div class="mode-toggle">
-          <button class="active" id="mode-1v1" onclick="setMode('1v1')">1V1</button>
-          <button id="mode-2v2" onclick="setMode('2v2')">2V2</button>
+          <button class="active" id="mode-1v1" onclick="PDAudio.playSfx('click'); setMode('1v1');">1V1</button>
+          <button id="mode-2v2" onclick="PDAudio.playSfx('click'); setMode('2v2');">2V2</button>
         </div>
 
         <div class="play-row">
-          <button class="btn-play" onclick="findMatch()">Jouer</button>
+          <button class="btn-play" onclick="PDAudio.playSfx('click'); findMatch();">Jouer</button>
           <span class="queue-note" id="queue-note">Matchmaking classé — 1V1</span>
         </div>
       </div>
@@ -260,6 +314,80 @@
   </div>
 </div>
 
+<!-- Musique de fond (menu) -->
+<audio id="bg-music" src="audio/menu-music.mp3" loop preload="auto"></audio>
+
+<!-- Modale Paramètres -->
+<div class="settings-overlay" id="settings-overlay" onclick="if(event.target===this){ PDAudio.playSfx('click'); closeSettings(); }">
+  <div class="settings-modal">
+    <div class="settings-header">
+      <h3>Paramètres</h3>
+      <div class="icon-btn" onclick="PDAudio.playSfx('click'); closeSettings();">✕</div>
+    </div>
+
+    <div class="settings-body">
+      <div class="settings-row toggle-row">
+        <div>
+          <div class="settings-label">Couper tous les sons</div>
+          <div class="settings-sub">Désactive la musique et les effets sonores</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="opt-mute-all" onchange="onSettingChange()">
+          <span class="slider-toggle"></span>
+        </label>
+      </div>
+
+      <div class="settings-row">
+        <div class="settings-label">Volume général</div>
+        <input type="range" min="0" max="100" id="opt-master" oninput="onSettingChange()">
+      </div>
+
+      <div class="settings-divider"></div>
+
+      <div class="settings-row toggle-row">
+        <div>
+          <div class="settings-label">Musique</div>
+          <div class="settings-sub">Musique d'ambiance du menu</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="opt-music-enabled" onchange="onSettingChange()">
+          <span class="slider-toggle"></span>
+        </label>
+      </div>
+      <div class="settings-row">
+        <div class="settings-label">Volume musique</div>
+        <input type="range" min="0" max="100" id="opt-music-vol" oninput="onSettingChange()">
+      </div>
+
+      <div class="settings-divider"></div>
+
+      <div class="settings-row toggle-row">
+        <div>
+          <div class="settings-label">Effets sonores</div>
+          <div class="settings-sub">Bruitages des clics, boutons, notifications</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="opt-sfx-enabled" onchange="onSettingChange()">
+          <span class="slider-toggle"></span>
+        </label>
+      </div>
+      <div class="settings-row">
+        <div class="settings-label">Volume des effets sonores</div>
+        <div class="settings-vol-row">
+          <input type="range" min="0" max="100" id="opt-sfx-vol" oninput="onSettingChange()">
+          <button class="settings-test-btn" onclick="PDAudio.playSfx('notification')">Tester</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-footer">
+      <button class="settings-reset" onclick="resetSettings()">Réinitialiser</button>
+      <button class="btn-play settings-close" onclick="PDAudio.playSfx('click'); closeSettings();">Terminé</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/audio-settings.js"></script>
 <script>
   const API_BASE = "";
   let currentMode = '1v1';
@@ -274,12 +402,47 @@
 
   function findMatch(){
     alert(`Recherche de partie ${currentMode.toUpperCase()} lancée… (à brancher sur le serveur de matchmaking)`);
+    setTimeout(() => PDAudio.playSfx('notification'), 400);
   }
 
   function logout(){
     localStorage.removeItem('pd_token');
     window.location.href = 'login.html';
   }
+
+  function openSettings(){
+    const s = PDAudio.get();
+    document.getElementById('opt-mute-all').checked = s.muteAll;
+    document.getElementById('opt-master').value = s.masterVolume;
+    document.getElementById('opt-music-enabled').checked = s.musicEnabled;
+    document.getElementById('opt-music-vol').value = s.musicVolume;
+    document.getElementById('opt-sfx-enabled').checked = s.sfxEnabled;
+    document.getElementById('opt-sfx-vol').value = s.sfxVolume;
+    document.getElementById('settings-overlay').classList.add('open');
+  }
+
+  function closeSettings(){
+    document.getElementById('settings-overlay').classList.remove('open');
+  }
+
+  function onSettingChange(){
+    PDAudio.update({
+      muteAll: document.getElementById('opt-mute-all').checked,
+      masterVolume: Number(document.getElementById('opt-master').value),
+      musicEnabled: document.getElementById('opt-music-enabled').checked,
+      musicVolume: Number(document.getElementById('opt-music-vol').value),
+      sfxEnabled: document.getElementById('opt-sfx-enabled').checked,
+      sfxVolume: Number(document.getElementById('opt-sfx-vol').value),
+    });
+  }
+
+  function resetSettings(){
+    PDAudio.reset();
+    openSettings();
+  }
+
+  PDAudio.registerMusic(document.getElementById('bg-music'));
+  PDAudio.armFirstInteraction();
 
   function rankForElo(elo){
     if(elo >= 2200) return { name: 'Diamant', cls: 'blue' };
